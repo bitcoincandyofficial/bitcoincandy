@@ -6,19 +6,10 @@ https://bitcoinabc.org
 What is Bitcoin Cash?
 ---------------------
 
-[Bitcoin Cash](https://www.bitcoincash.org/) is an experimental digital currency
-that enables instant payments to anyone, anywhere in the world. It uses peer-to-peer
-technology to operate with no central authority: managing transactions and issuing
-money are carried out collectively by the network. Bitcoin Cash is a descendant of
-Bitcoin. It became a separate currency from the version supported by Bitcoin Core
-when the two split on August 1, 2017. Bitcoin Cash and the Bitcoin Core version of
-Bitcoin share the same transaction history up until the split.
+https://bitcoincandy.one
 
-What is Bitcoin Candy?
---------------------
-
-Bitcoin Candy is the name of open-source software which enables the use of Bitcoin Cash.
-It is a fork of the [Bitcoin Core](https://bitcoincore.org) software project.
+What is Bitcoin candy?
+Bitcoin candy is an experimental digital currency that enables instant payments to anyone, anywhere in the world. It uses peer-to-peer technology to operate with no central authority: managing transactions and issuing money are carried out collectively by the network. Bitcoin Candy is a descendant of Bitcoin Cash. It became a separate currency from the version supported by Bitcoin Cash when the two split on Jan 13, 2018. Bitcoin Candy and the Bitcoin Cash version of Bitcoin share the same transaction history up until the split.
 
 License
 -------
