@@ -1,10 +1,7 @@
 Bitcoin Candy
 ===========
 
-https://bitcoinabc.org
 
-What is Bitcoin Cash?
----------------------
 
 https://bitcoincandy.one
 
