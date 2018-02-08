@@ -10,8 +10,9 @@ Bitcoin candy is an experimental digital currency that enables instant payments 
 Release
 -------
 
-[windows-exe]
-(https://github.com/bitcoincandyofficial/bitcoincandy/files/1707921/bitcoincandy-windows-exe.zip)
+[windows-64bit](https://github.com/bitcoincandyofficial/bitcoincandy/files/1707921/bitcoincandy-windows-exe.zip)
+
+Currently we only provide windows version of wallet. Wallets for  linux and mac will be released soon.
 
 License
 -------
