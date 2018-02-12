@@ -4,7 +4,13 @@ Bitcoin Candy
 https://bitcoincandy.one
 
 What is Bitcoin candy?
-Bitcoin candy is an experimental digital currency that enables instant payments to anyone, anywhere in the world. It uses peer-to-peer technology to operate with no central authority: managing transactions and issuing money are carried out collectively by the network. Bitcoin Candy is a descendant of Bitcoin Cash. It became a separate currency from the version supported by Bitcoin Cash when the two split on Jan 13, 2018. Bitcoin Candy and the Bitcoin Cash version of Bitcoin share the same transaction history up until the split.
+Bitcoin candy is a hard fork of Bitcoin Cash. Compared to Bitcoin Cash, it brings more attractive features：
+(1) ASIC-resistant POW: Equihash;
+(2) Amount: 21 billion;
+(3) Block Interval: 2 minutes;
+(4) Double way replay protection.
+
+It became a separate currency from the version supported by Bitcoin Cash when the two split on Jan 13, 2018. Bitcoin Candy and the Bitcoin Cash version of Bitcoin share the same transaction history up until the split.
 
 
 Release
@@ -12,7 +18,7 @@ Release
 
 [windows-64bit](https://github.com/bitcoincandyofficial/bitcoincandy/files/1707921/bitcoincandy-windows-exe.zip)
 
-Currently we only provide windows version of wallet. Wallets for  linux and mac will be released soon.
+Currently we only provide windows-64 version of wallet. Wallets for windows-32bit, linux and mac will be released soon. But feel free to compile it by yourself, instructions can be found in src/doc/. 
 
 License
 -------
@@ -25,7 +31,7 @@ Development Process
 
 This Github repository contains only source code of releases.
 
-Bitcoin Candy development takes place at https://reviews.bitcoinabc.org/
+Bitcoin Candy development takes place at https://cdy.one/.
 
 If you would like to contribute, please read [CONTRIBUTING](CONTRIBUTING.md)
 
