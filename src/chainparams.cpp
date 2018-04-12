@@ -24,6 +24,7 @@
 
 #include "base58.h"
 #include <boost/assign/list_of.hpp>
+#include <limits>
 
 #include "chainparamsseeds.h"
 
@@ -121,12 +122,14 @@ public:
         consensus.powLimit = uint256S("0007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitLegacy = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
-        //based on https://github.com/BTCGPU/BTCGPU/issues/78
-        consensus.nPowAveragingWindow = 30;
-        assert(maxUint/UintToArith256(consensus.powLimit) >= consensus.nPowAveragingWindow);
-        consensus.nPowMaxAdjustDown = 32;
-        consensus.nPowMaxAdjustUp = 16;
+        consensus.nDigishieldAveragingWindow = 30;
+        assert(maxUint/UintToArith256(consensus.powLimit) >= consensus.nDigishieldAveragingWindow);
+        consensus.nDigishieldMaxAdjustDown = 32;
+        consensus.nDigishieldMaxAdjustUp = 16;
 
+        consensus.nZawyLwmaAveragingWindow = 60;
+        consensus.CDYMaxFutureBlockTime = 7 * 2 * 60; //
+        
         // two weeks
         consensus.nPowTargetTimespanLegacy = 14 * 24 * 60 * 60;
         consensus.nPowTargetSpacing = 10 * 60;
@@ -172,6 +175,11 @@ public:
 
         //  hard fork-----add by hmc
         consensus.cdyHeight = 512666;
+        
+
+
+        consensus.CDYZawyLWMAHeight = 573123;
+
         consensus.BitcoinPostforkBlock = uint256S("0000000000000000007b746068bd08ba4089f97636690e9dc758774e7db21f17");	// 512666 block hash
         consensus.BitcoinPostforkTime = 1515799972;
 
@@ -303,14 +311,15 @@ public:
         consensus.antiReplayOpReturnSunsetHeight = 1250000;
         consensus.antiReplayOpReturnCommitment = GetAntiReplayCommitment();
         consensus.powLimit = uint256S("0007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-		consensus.powLimitLegacy = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+	consensus.powLimitLegacy = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
-        //based on https://github.com/BTCGPU/BTCGPU/issues/78
-        consensus.nPowAveragingWindow = 30;
-        assert(maxUint/UintToArith256(consensus.powLimit) >= consensus.nPowAveragingWindow);
-        consensus.nPowMaxAdjustDown = 32;
-        consensus.nPowMaxAdjustUp = 16;
+        consensus.nDigishieldAveragingWindow= 30;
+        assert(maxUint/UintToArith256(consensus.powLimit) >= consensus.nDigishieldAveragingWindow);
+        consensus.nDigishieldMaxAdjustDown = 32;
+        consensus.nDigishieldMaxAdjustUp = 16;
 
+        consensus.nZawyLwmaAveragingWindow = 60;
+        consensus.CDYMaxFutureBlockTime = 7 * 2 * 60; // 14 mins
         // two weeks
         consensus.nPowTargetTimespanLegacy = 14 * 24 * 60 * 60;
         consensus.nPowTargetSpacing = 10 * 60;
@@ -355,6 +364,8 @@ public:
         
         //  hard fork-----add by hmc
         consensus.cdyHeight = 201601;
+        
+        consensus.CDYZawyLWMAHeight = 201681; 
         consensus.BitcoinPostforkBlock = uint256S("00000000d16d6c2aecc7436eea0c54a53741fee9abf265606aa465d6fd3f3d8a"); // block 201601
         consensus.BitcoinPostforkTime = 1393815074;
 
@@ -379,7 +390,7 @@ public:
 
         // use different default
         nDefaultPort = 18367;
-		nBitcoinDefaultPort = 18333;
+	nBitcoinDefaultPort = 18333;
         nPruneAfterHeight = 1000;
         const size_t N = 200, K = 9;
         BOOST_STATIC_ASSERT(equihash_parameters_acceptable(N, K));
@@ -399,9 +410,7 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
         // nodes with support for servicebits filtering should be at the top
-        // Bitcoin ABC seeder
         vSeeds.push_back(CDNSSeedData("bitcoincandy.one", "testnet-seed.bitcoincandy.one", true));
-
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<uint8_t>(1, 111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<uint8_t>(1, 196);
         base58Prefixes[SECRET_KEY] = std::vector<uint8_t>(1, 239);
@@ -457,14 +466,15 @@ public:
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 		consensus.powLimitLegacy = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
-        //based on https://github.com/BTCGPU/BTCGPU/issues/78
-        consensus.nPowAveragingWindow = 30;
-        //assert(maxUint/UintToArith256(consensus.powLimit) >= consensus.nPowAveragingWindow);
-        consensus.nPowMaxAdjustDown = 32;
-        consensus.nPowMaxAdjustUp = 16;
+        consensus.nDigishieldAveragingWindow = 30;
+        consensus.nDigishieldMaxAdjustDown = 32;
+        consensus.nDigishieldMaxAdjustUp = 16;
 
-        // two weeks
-        consensus.nPowTargetTimespanLegacy = 14 * 24 * 60 * 60;
+        consensus.nZawyLwmaAveragingWindow = 45;
+        consensus.nZawyLwmaAjustedWeight = 13632;
+        consensus.CDYMaxFutureBlockTime = 7 * 10 * 60; // 70 mins
+
+        consensus.nPowTargetTimespanLegacy = 14 * 24 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 10 * 60;
         consensus.nPowTargetSpacingCDY = 2 * 60;
         consensus.fPowAllowMinDifficultyBlocks = true;
@@ -497,7 +507,9 @@ public:
 
         // Nov, 13 hard fork is always on on regtest.
         consensus.daaHeight = 2250;
-
+         
+        consensus.CDYZawyLWMAHeight = -1;
+        
         diskMagic[0] = 0xfa;
         diskMagic[1] = 0xbf;
         diskMagic[2] = 0xb5;

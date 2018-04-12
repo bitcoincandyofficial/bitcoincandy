@@ -52,6 +52,11 @@ struct Params {
     int uahfHeight;
     /** Block height at which CDHF kicks in --add by hmc*/
     int cdyHeight;
+    /** Block height at which Zawy's LWMA difficulty algorithm becomes active */
+    int CDYZawyLWMAHeight;
+    /** Limit BITCOIN_MAX_FUTURE_BLOCK_TIME **/
+    int64_t CDYMaxFutureBlockTime;
+    
     /** Block height at which the new DAA becomes active */
     /** The first post-fork block of Bitcoin blockchain. **/
     uint256 BitcoinPostforkBlock;
@@ -83,14 +88,18 @@ struct Params {
     int64_t nPowTargetTimespanLegacy;
     int64_t DifficultyAdjustmentInterval() const { return nPowTargetTimespanLegacy / nPowTargetSpacing; }
     //Zcash logic for diff adjustment
-    int64_t nPowAveragingWindow;
-    int64_t nPowMaxAdjustDown;
-    int64_t nPowMaxAdjustUp;
-    int64_t AveragingWindowTimespan() const { return nPowAveragingWindow * nPowTargetSpacingCDY; }
-    int64_t MinActualTimespan() const { return (AveragingWindowTimespan() * (100 - nPowMaxAdjustUp  )) / 100; }
-    int64_t MaxActualTimespan() const { return (AveragingWindowTimespan() * (100 + nPowMaxAdjustDown)) / 100; }
+    int64_t nDigishieldAveragingWindow;
+    int64_t nDigishieldMaxAdjustDown;
+    int64_t nDigishieldMaxAdjustUp;
+    int64_t DigishieldAveragingWindowTimespan() const { return nDigishieldAveragingWindow * nPowTargetSpacingCDY; }
+    int64_t DigishieldMinActualTimespan() const { return (DigishieldAveragingWindowTimespan() * (100 - nDigishieldMaxAdjustUp  )) / 100; }
+    int64_t DigishieldMaxActualTimespan() const { return (DigishieldAveragingWindowTimespan() * (100 + nDigishieldMaxAdjustDown)) / 100; }
     uint256 nMinimumChainWork;
     uint256 defaultAssumeValid;
+    
+  // Params for Zawy's LWMA difficulty adjustment algorithm. (Used by testnet and regtest)
+    int64_t nZawyLwmaAveragingWindow;  // N
+    int64_t nZawyLwmaAjustedWeight;  // k = (N+1)/2 * 0.9989^(500/N) * T   
 };
 } // namespace Consensus
 
