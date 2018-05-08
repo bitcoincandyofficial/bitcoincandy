@@ -52,7 +52,7 @@ public:
                     READWRITE(COMPACTSIZE(index));
                     if (index > std::numeric_limits<uint32_t>::max())
                         throw std::ios_base::failure(
-                            "index overflowed 16 bits");
+                            "index overflowed 32 bits");
                     indexes[i] = index;
                 }
             }
@@ -61,7 +61,7 @@ public:
             for (size_t j = 0; j < indexes.size(); j++) {
                 if (uint64_t(indexes[j]) + uint64_t(offset) >
                     std::numeric_limits<uint32_t>::max())
-                    throw std::ios_base::failure("indexes overflowed 16 bits");
+                    throw std::ios_base::failure("indexes overflowed 32 bits");
                 indexes[j] = indexes[j] + offset;
                 offset = indexes[j] + 1;
             }
@@ -121,7 +121,7 @@ struct PrefilledTransaction {
         uint64_t idx = index;
         READWRITE(COMPACTSIZE(idx));
         if (idx > std::numeric_limits<uint32_t>::max())
-            throw std::ios_base::failure("index overflowed 16-bits");
+            throw std::ios_base::failure("index overflowed 32-bits");
         index = idx;
         READWRITE(REF(TransactionCompressor(tx)));
     }
