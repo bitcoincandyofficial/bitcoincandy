@@ -3,11 +3,11 @@ Bitcoin Candy version 0.17.0 is available now.
 
 This release includes the following features and fixes:
 
-- (1)Increase the maximum blocksize to 32,000,000 bytes
-- (2)Increase the OP_RETURN size to 600 bytes
-- (3)Re-enabling of several opcodes: OP_CAT, OP_AND, OP_OR, OP_XOR, OP_DIV, OP_MOD
-- (4)New opcodes: OP_SPLIT to replace OP_SUBSTR, OP_NUM2BIN, OP_BIN2NUM
-- (5)DAA optimization to make cdy network responds faster when hashrate fluctuating violently.
+- Increase the maximum blocksize to 32,000,000 bytes
+- Increase the OP_RETURN size to 600 bytes
+- Re-enabling of several opcodes: OP_CAT, OP_AND, OP_OR, OP_XOR, OP_DIV, OP_MOD
+- New opcodes: OP_SPLIT to replace OP_SUBSTR, OP_NUM2BIN, OP_BIN2NUM
+- DAA optimization to make cdy network responds faster when hashrate fluctuating violently.
 
 
 
