@@ -6,6 +6,7 @@
 #include "data/tx_valid.json.h"
 #include "test/test_bitcoin.h"
 
+#include "checkqueue.h"
 #include "clientversion.h"
 #include "consensus/validation.h"
 #include "core_io.h"
@@ -392,6 +393,90 @@ void ReplaceRedeemScript(CScript &script, const CScript &redeemScript) {
     script = PushAll(stack);
 }
 
+BOOST_AUTO_TEST_CASE(test_big_transaction) {
+    CKey key;
+    key.MakeNewKey(false);
+    CBasicKeyStore keystore;
+    keystore.AddKeyPubKey(key, key.GetPubKey());
+    CScript scriptPubKey = CScript()
+                           << ToByteVector(key.GetPubKey()) << OP_CHECKSIG;
+
+    std::vector<uint32_t> sigHashes;
+    sigHashes.emplace_back(SIGHASH_NONE | SIGHASH_FORKID);
+    sigHashes.emplace_back(SIGHASH_SINGLE | SIGHASH_FORKID);
+    sigHashes.emplace_back(SIGHASH_ALL | SIGHASH_FORKID);
+    sigHashes.emplace_back(SIGHASH_NONE | SIGHASH_FORKID |
+                           SIGHASH_ANYONECANPAY);
+    sigHashes.emplace_back(SIGHASH_SINGLE | SIGHASH_FORKID |
+                           SIGHASH_ANYONECANPAY);
+    sigHashes.emplace_back(SIGHASH_ALL | SIGHASH_FORKID | SIGHASH_ANYONECANPAY);
+
+    CMutableTransaction mtx;
+    mtx.nVersion = 1;
+
+    // create a big transaction of 4500 inputs signed by the same key.
+    const static size_t OUTPUT_COUNT = 4500;
+    mtx.vout.reserve(OUTPUT_COUNT);
+
+    for (size_t ij = 0; ij < OUTPUT_COUNT; ij++) {
+        size_t i = mtx.vin.size();
+        uint256 prevId = uint256S(
+            "0000000000000000000000000000000000000000000000000000000000000100");
+        COutPoint outpoint(prevId, i);
+
+        mtx.vin.resize(mtx.vin.size() + 1);
+        mtx.vin[i].prevout = outpoint;
+        mtx.vin[i].scriptSig = CScript();
+
+        mtx.vout.emplace_back(Amount(1000), CScript() << OP_1);
+    }
+
+    // sign all inputs
+    for (size_t i = 0; i < mtx.vin.size(); i++) {
+        bool hashSigned =
+            SignSignature(keystore, scriptPubKey, mtx, i, Amount(1000),
+                          sigHashes.at(i % sigHashes.size()));
+        BOOST_CHECK_MESSAGE(hashSigned, "Failed to sign test transaction");
+    }
+
+    CTransaction tx(mtx);
+
+    // check all inputs concurrently, with the cache
+    PrecomputedTransactionData txdata(tx);
+    boost::thread_group threadGroup;
+    CCheckQueue<CScriptCheck> scriptcheckqueue(128);
+    CCheckQueueControl<CScriptCheck> control(&scriptcheckqueue);
+
+    for (int i = 0; i < 20; i++) {
+        threadGroup.create_thread(boost::bind(
+            &CCheckQueue<CScriptCheck>::Thread, boost::ref(scriptcheckqueue)));
+    }
+
+    std::vector<Coin> coins;
+    for (size_t i = 0; i < mtx.vin.size(); i++) {
+        CTxOut out;
+        out.nValue = Amount(1000);
+        out.scriptPubKey = scriptPubKey;
+        coins.emplace_back(std::move(out), 1, false);
+    }
+
+    for (size_t i = 0; i < mtx.vin.size(); i++) {
+        std::vector<CScriptCheck> vChecks;
+        CTxOut &out = coins[tx.vin[i].prevout.n].GetTxOut();
+        CScriptCheck check(out.scriptPubKey, out.nValue, tx, i,
+                           MANDATORY_SCRIPT_VERIFY_FLAGS, false, txdata);
+        vChecks.push_back(CScriptCheck());
+        check.swap(vChecks.back());
+        control.Add(vChecks);
+    }
+
+    bool controlCheck = control.Wait();
+    BOOST_CHECK(controlCheck);
+
+    threadGroup.interrupt_all();
+    threadGroup.join_all();
+}
+
 BOOST_AUTO_TEST_CASE(test_witness) {
     CBasicKeyStore keystore, keystore2;
     CKey key1, key2, key3, key1L, key2L;
@@ -583,6 +668,105 @@ BOOST_AUTO_TEST_CASE(test_IsStandard) {
                               "b649f6bc3f4cef3800");
     BOOST_CHECK_EQUAL(MAX_OP_RETURN_RELAY + 1, t.vout[0].scriptPubKey.size());
     BOOST_CHECK(!IsStandardTx(t, reason));
+
+    /**
+     * Check acceptance of larger op_return when asked to.
+     */
+
+    // New default size of 223 byte is standard
+    t.vout[0].scriptPubKey =
+        CScript() << OP_RETURN
+                  << ParseHex("646578784062697477617463682e636f2092c558ed52c56d"
+                              "8dd14ca76226bc936a84820d898443873eb03d8854b21fa3"
+                              "952b99a2981873e74509281730d78a21786d34a38bd1ebab"
+                              "822fad42278f7f4420db6ab1fd2b6826148d4f73bb41ec2d"
+                              "40a6d5793d66e17074a0c56a8a7df21062308f483dd6e38d"
+                              "53609d350038df0a1b2a9ac8332016e0b904f66880dd0108"
+                              "81c4e8074cce8e4ad6c77cb3460e01bf0e7e811b5f945f83"
+			      "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "f5d00d4adf73f2dd112ca75cf19754651909becfbe65aed1"
+                              "3afb2ab8df73f2dd112ca75cf19754651909becfbe65aed1");
+    BOOST_CHECK_EQUAL(MAX_OP_RETURN_RELAY_LARGE, t.vout[0].scriptPubKey.size());
+    BOOST_CHECK(IsStandardTx(t, reason, true));
+
+    // Larger than default size of 223 byte is non-standard
+    t.vout[0].scriptPubKey =
+        CScript() << OP_RETURN
+                  << ParseHex("646578784062697477617463682e636f2092c558ed52c56d"
+                              "8dd14ca76226bc936a84820d898443873eb03d8854b21fa3"
+                              "952b99a2981873e74509281730d78a21786d34a38bd1ebab"
+                              "822fad42278f7f4420db6ab1fd2b6826148d4f73bb41ec2d"
+                              "40a6d5793d66e17074a0c56a8a7df21062308f483dd6e38d"
+                              "53609d350038df0a1b2a9ac8332016e0b904f66880dd0108"
+                              "81c4e8074cce8e4ad6c77cb3460e01bf0e7e811b5f945f83"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "f5d00d4adf73f2dd112ca75cf19754651909becfbe65aed1"
+    			      "646578784062697477617463682e636f2092c558ed52c56d"
+                              "8dd14ca76226bc936a84820d898443873eb03d8854b21fa3"
+                              "952b99a2981873e74509281730d78a21786d34a38bd1ebab"
+                              "822fad42278f7f4420db6ab1fd2b6826148d4f73bb41ec2d"
+                              "40a6d5793d66e17074a0c56a8a7df21062308f483dd6e38d"
+                              "53609d350038df0a1b2a9ac8332016e0b904f66880dd0108"
+                              "81c4e8074cce8e4ad6c77cb3460e01bf0e7e811b5f945f83"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "f5d00d4adf73f2dd112ca75cf19754651909becfbe65aed1"
+                              "952b99a2981873e74509281730d78a21786d34a38bd1ebab"
+                              "822fad42278f7f4420db6ab1fd2b6826148d4f73bb41ec2d"
+                              "40a6d5793d66e17074a0c56a8a7df21062308f483dd6e38d"
+                              "53609d350038df0a1b2a9ac8332016e0b904f66880dd0108"
+                              "81c4e8074cce8e4ad6c77cb3460e01bf0e7e811b5f945f83"
+                              "732ba6677520a893d75d9a966cb8f85dc301656b1635c631"
+                              "f5d00d4adf73f2dd112ca75cf19754651909becfbe65aed1"
+                              "3a");
+    BOOST_CHECK_EQUAL(MAX_OP_RETURN_RELAY_LARGE + 1,
+                      t.vout[0].scriptPubKey.size());
+    BOOST_CHECK(!IsStandardTx(t, reason, true));
+
+    /**
+     * Check when a custom value is used for -datacarriersize .
+     */
+    unsigned newMaxSize = MAX_OP_RETURN_RELAY + 7;
+    ForceSetArg("-datacarriersize", std::to_string(newMaxSize));
+
+    // Max user provided payload size is standard
+    t.vout[0].scriptPubKey =
+        CScript() << OP_RETURN
+                  << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909"
+                              "a67962e0ea1f61deb649f6bc3f4cef3804678afdb0fe5548"
+                              "271967f1a67130b7105cd6a828e03909a67962e0ea1f61de"
+                              "b649f6bc3f4cef3877696e64657878");
+    BOOST_CHECK_EQUAL(t.vout[0].scriptPubKey.size(), newMaxSize);
+    BOOST_CHECK(IsStandardTx(t, reason, false));
+    BOOST_CHECK(IsStandardTx(t, reason, true));
+
+    // Max user provided payload size + 1 is non-standard
+    t.vout[0].scriptPubKey =
+        CScript() << OP_RETURN
+                  << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909"
+                              "a67962e0ea1f61deb649f6bc3f4cef3804678afdb0fe5548"
+                              "271967f1a67130b7105cd6a828e03909a67962e0ea1f61de"
+                              "b649f6bc3f4cef3877696e6465787800");
+    BOOST_CHECK_EQUAL(t.vout[0].scriptPubKey.size(), newMaxSize + 1);
+    BOOST_CHECK(!IsStandardTx(t, reason, false));
+    BOOST_CHECK(!IsStandardTx(t, reason, true));
+
+    // Clear custom confirguration.
+    ClearArg("-datacarriersize");
 
     // Data payload can be encoded in any way...
     t.vout[0].scriptPubKey = CScript() << OP_RETURN << ParseHex("");

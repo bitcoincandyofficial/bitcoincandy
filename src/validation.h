@@ -57,6 +57,8 @@ static const bool DEFAULT_WHITELISTRELAY = true;
 static const bool DEFAULT_WHITELISTFORCERELAY = true;
 /** Default for -minrelaytxfee, minimum relay fee for transactions */
 static const Amount DEFAULT_MIN_RELAY_TX_FEE(1000);
+/** Default for -excessutxocharge for transactions transactions */
+static const Amount DEFAULT_UTXO_FEE(0);
 //! -maxtxfee default
 static const Amount DEFAULT_TRANSACTION_MAXFEE(COIN / 10);
 //! Discourage users to set fees higher than this amount (in satoshis) per kB
@@ -196,6 +198,9 @@ extern int64_t nMaxTipAge;
 /** Block hash whose ancestors we will assume to have valid scripts without
  * checking them. */
 extern uint256 hashAssumeValid;
+
+/** Default for -stopatheight */
+static const int DEFAULT_STOPATHEIGHT = 0;
 
 /** Best header we've seen so far (used for getheaders queries' starting
  * points). */
@@ -369,13 +374,15 @@ bool IsUAHFenabled(const Config &config, const CBlockIndex *pindexPrev);
 /** Check is DAA HF has activated. */
 bool IsDAAEnabled(const Config &config, const CBlockIndex *pindexPrev);
 
+/** Check if May 15, 2018 HF has activated. */
+bool IsMonolithEnabled(const Config &config, const CBlockIndex *pindexPrev);
+
 /** (try to) add transaction to memory pool
  * plTxnReplaced will be appended to with all transactions replaced from mempool
  * **/
 bool AcceptToMemoryPool(const Config &config, CTxMemPool &pool,
                         CValidationState &state, const CTransactionRef &tx,
                         bool fLimitFree, bool *pfMissingInputs,
-                        std::list<CTransactionRef> *plTxnReplaced = nullptr,
                         bool fOverrideMempoolLimit = false,
                         const Amount nAbsurdFee = Amount(0));
 

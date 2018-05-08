@@ -229,8 +229,8 @@ static bool FlushStateToDisk(CValidationState &state, FlushStateMode mode,
                              int nManualPruneHeight = 0);
 static void FindFilesToPruneManual(std::set<int> &setFilesToPrune,
                                    int nManualPruneHeight);
-static uint32_t GetBlockScriptFlags(const CBlockIndex *pindex,
-                                    const Config &config);
+static uint32_t GetBlockScriptFlags(const Config &config,
+                                    const CBlockIndex *pChainTip);
 
 static bool IsFinalTx(const CTransaction &tx, int nBlockHeight,
                       int64_t nBlockTime) {
@@ -644,6 +644,20 @@ bool IsDAAEnabled(const Config &config, const CBlockIndex *pindexPrev) {
     return IsDAAEnabled(config, pindexPrev->nHeight);
 }
 
+static bool IsMonolithEnabled(const Config &config, int64_t nMedianTimePast) {
+    return nMedianTimePast >=
+             config.GetChainParams().GetConsensus().monolithActivationTime;
+}
+
+bool IsMonolithEnabled(const Config &config, const CBlockIndex *pindexPrev) {
+    if (pindexPrev == nullptr) {
+        return false;
+    }
+
+    return IsMonolithEnabled(config, pindexPrev->GetMedianTimePast());
+}
+
+
 // Used to avoid mempool polluting consensus critical paths if CCoinsViewMempool
 // were somehow broken and returning the wrong scriptPubKeys
 static bool CheckInputsFromMempoolAndCache(const CTransaction &tx,
@@ -690,8 +704,7 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction &tx,
 static bool AcceptToMemoryPoolWorker(
     const Config &config, CTxMemPool &pool, CValidationState &state,
     const CTransactionRef &ptx, bool fLimitFree, bool *pfMissingInputs,
-    int64_t nAcceptTime, std::list<CTransactionRef> *plTxnReplaced,
-    bool fOverrideMempoolLimit, const Amount nAbsurdFee,
+    int64_t nAcceptTime, bool fOverrideMempoolLimit, const Amount nAbsurdFee,
     std::vector<COutPoint> &coins_to_uncache) {
     AssertLockHeld(cs_main);
 
@@ -707,9 +720,12 @@ static bool AcceptToMemoryPoolWorker(
         return false;
     }
 
+    // After the May, 15 hard fork, we start accepting larger op_return.
+    const bool hasMonolith = IsMonolithEnabled(config, chainActive.Tip());
+
     // Rather not work on nonstandard transactions (unless -testnet/-regtest)
     std::string reason;
-    if (fRequireStandard && !IsStandardTx(tx, reason)) {
+    if (fRequireStandard && !IsStandardTx(tx, reason, hasMonolith)) {
         return state.DoS(0, false, REJECT_NONSTANDARD, reason);
     }
 
@@ -932,11 +948,21 @@ static bool AcceptToMemoryPoolWorker(
                              "too-long-mempool-chain", false, errString);
         }
 
+        // Set extraFlags as a set of flags that needs to be activated.
+        uint32_t extraFlags = SCRIPT_VERIFY_NONE;
+        if (hasMonolith) {
+            extraFlags |= SCRIPT_ENABLE_MONOLITH_OPCODES;
+        }
+
+        // Check inputs based on the set of flags we activate.
         uint32_t scriptVerifyFlags = STANDARD_SCRIPT_VERIFY_FLAGS;
         if (!Params().RequireStandard()) {
             scriptVerifyFlags =
                 GetArg("-promiscuousmempoolflags", scriptVerifyFlags);
         }
+
+        // Make sure whatever we need to activate is actually activated.
+        scriptVerifyFlags |= extraFlags;
 
         // Check against previous transactions. This is done last to help
         // prevent CPU exhaustion denial-of-service attacks.
@@ -963,7 +989,8 @@ static bool AcceptToMemoryPoolWorker(
         // invalid blocks (using TestBlockValidity), however allowing such
         // transactions into the mempool can be exploited as a DoS attack.
         uint32_t currentBlockScriptVerifyFlags =
-            GetBlockScriptFlags(chainActive.Tip(), config);
+            GetBlockScriptFlags(config, chainActive.Tip());
+
         if (!CheckInputsFromMempoolAndCache(tx, state, view, pool,
                                             currentBlockScriptVerifyFlags, true,
                                             txdata)) {
@@ -978,7 +1005,7 @@ static bool AcceptToMemoryPoolWorker(
             }
 
             if (!CheckInputs(tx, state, view, true,
-                             MANDATORY_SCRIPT_VERIFY_FLAGS, true, false,
+                             MANDATORY_SCRIPT_VERIFY_FLAGS | extraFlags, true, false,
                              txdata)) {
                 return error(
                     "%s: ConnectInputs failed against MANDATORY but not "
@@ -1018,15 +1045,20 @@ static bool AcceptToMemoryPoolWorker(
     return true;
 }
 
-static bool AcceptToMemoryPoolWithTime(
-    const Config &config, CTxMemPool &pool, CValidationState &state,
-    const CTransactionRef &tx, bool fLimitFree, bool *pfMissingInputs,
-    int64_t nAcceptTime, std::list<CTransactionRef> *plTxnReplaced = nullptr,
-    bool fOverrideMempoolLimit = false, const Amount nAbsurdFee = Amount(0)) {
+/**
+ * (try to) add transaction to memory pool with a specified acceptance time.
+ */
+static bool AcceptToMemoryPoolWithTime(const Config &config, CTxMemPool &pool,
+                                       CValidationState &state,
+                                       const CTransactionRef &tx,
+                                       bool fLimitFree, bool *pfMissingInputs,
+                                       int64_t nAcceptTime,
+                                       bool fOverrideMempoolLimit = false,
+                                       const Amount nAbsurdFee = Amount(0)) {
     std::vector<COutPoint> coins_to_uncache;
     bool res = AcceptToMemoryPoolWorker(
         config, pool, state, tx, fLimitFree, pfMissingInputs, nAcceptTime,
-        plTxnReplaced, fOverrideMempoolLimit, nAbsurdFee, coins_to_uncache);
+        fOverrideMempoolLimit, nAbsurdFee, coins_to_uncache);
     if (!res) {
         for (const COutPoint &outpoint : coins_to_uncache) {
             pcoinsTip->Uncache(outpoint);
@@ -1043,10 +1075,9 @@ static bool AcceptToMemoryPoolWithTime(
 bool AcceptToMemoryPool(const Config &config, CTxMemPool &pool,
                         CValidationState &state, const CTransactionRef &tx,
                         bool fLimitFree, bool *pfMissingInputs,
-                        std::list<CTransactionRef> *plTxnReplaced,
                         bool fOverrideMempoolLimit, const Amount nAbsurdFee) {
     return AcceptToMemoryPoolWithTime(config, pool, state, tx, fLimitFree,
-                                      pfMissingInputs, GetTime(), plTxnReplaced,
+                                      pfMissingInputs, GetTime(),
                                       fOverrideMempoolLimit, nAbsurdFee);
 }
 
@@ -1195,18 +1226,22 @@ Amount GetBlockSubsidy(int nHeight, const Consensus::Params &consensusParams) {
     }
     else halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
 
-    // Force block reward to zero when right shift is undefined.
-    //  Yang determine later if we use this or BTG premine window mechanism
+
     if (nHeight == consensusParams.cdyHeight)
 		return 210000 * COIN;// * COIN_SCALE;
     
-    if (halvings >= 64) return Amount(0);
+    // Force block reward to zero when right shift is undefined. 
+    if (halvings >= 61) return Amount(0);  //change it from 64 to 61
 
     Amount nSubsidy = 50 * COIN;// * COIN_SCALE;
     
     if(nHeight>=consensusParams.cdyHeight) {
         nSubsidy = 10 * COIN;// * COIN_SCALE;
     }  
+    //if(IsMonolithEnabled(GetConfig(), chainActive.Tip())) 
+    //{
+    //    nSubsidy = COIN;
+    //}
     // Subsidy is cut in half every 210,000 blocks which will occur
     // approximately every 4 years.
     return Amount(nSubsidy.GetSatoshis() >> halvings);
@@ -1461,7 +1496,8 @@ bool CheckTxInputs(const CTransaction &tx, CValidationState &state,
 
 bool CheckInputs(const CTransaction &tx, CValidationState &state,
                  const CCoinsViewCache &inputs, bool fScriptChecks,
-                 uint32_t flags, bool sigCacheStore, bool scriptCacheStore,
+                 const uint32_t flags, bool sigCacheStore,
+                 bool scriptCacheStore,
                  const PrecomputedTransactionData &txdata,
                  std::vector<CScriptCheck> *pvChecks) {
     assert(!tx.IsCoinBase());
@@ -1515,15 +1551,25 @@ bool CheckInputs(const CTransaction &tx, CValidationState &state,
         if (pvChecks) {
             pvChecks->push_back(std::move(check));
         } else if (!check()) {
-            if (flags & STANDARD_NOT_MANDATORY_VERIFY_FLAGS) {
+            const bool hasNonMandatoryFlags =
+                (flags & STANDARD_NOT_MANDATORY_VERIFY_FLAGS) != 0;
+            const bool doesNotHaveMonolith =
+                (flags & SCRIPT_ENABLE_MONOLITH_OPCODES) == 0;
+            if (hasNonMandatoryFlags || doesNotHaveMonolith) {
                 // Check whether the failure was caused by a non-mandatory
                 // script verification check, such as non-standard DER encodings
                 // or non-null dummy arguments; if so, don't trigger DoS
                 // protection to avoid splitting the network between upgraded
                 // and non-upgraded nodes.
-                CScriptCheck check2(scriptPubKey, amount, tx, i,
-                                    flags &
-                                        ~STANDARD_NOT_MANDATORY_VERIFY_FLAGS,
+                //
+                // We also check activating the monolith opcodes as it is a
+                // strictly additive change and we would not like to ban some of
+                // our peer that are ahead of us and are considering the fork
+                // as activated.
+                CScriptCheck check2(
+                    scriptPubKey, amount, tx, i,
+                    (flags & ~STANDARD_NOT_MANDATORY_VERIFY_FLAGS) |
+                        SCRIPT_ENABLE_MONOLITH_OPCODES,
                                     sigCacheStore, txdata);
                 if (check2()) {
                     return state.Invalid(
@@ -1661,7 +1707,12 @@ DisconnectResult UndoCoinSpend(const Coin &undo, CCoinsViewCache &view,
                                         alternate.IsCoinBase());
     }
 
-    view.AddCoin(out, undo, undo.IsCoinBase());
+    // The potential_overwrite parameter to AddCoin is only allowed to be false
+    // if we know for sure that the coin did not already exist in the cache. As
+    // we have queried for that above using HaveCoin, we don't need to guess.
+    // When fClean is false, a coin already existed and it is an overwrite.
+    view.AddCoin(out, std::move(undo), !fClean);
+
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
 }
 
@@ -1673,8 +1724,6 @@ DisconnectResult UndoCoinSpend(const Coin &undo, CCoinsViewCache &view,
 static DisconnectResult DisconnectBlock(const CBlock &block,
                                         const CBlockIndex *pindex,
                                         CCoinsViewCache &view) {
-    assert(pindex->GetBlockHash() == view.GetBestBlock());
-
     CBlockUndo blockUndo;
     CDiskBlockPos pos = pindex->GetUndoPos();
     if (pos.IsNull()) {
@@ -1839,42 +1888,41 @@ public:
 static ThresholdConditionCache warningcache[VERSIONBITS_NUM_BITS];
 
 // Returns the script flags which should be checked for a given block
-static uint32_t GetBlockScriptFlags(const CBlockIndex *pindex,
-                                    const Config &config) {
+static uint32_t GetBlockScriptFlags(const Config &config,
+                                    const CBlockIndex *pChainTip) {
     AssertLockHeld(cs_main);
     const Consensus::Params &consensusparams =
         config.GetChainParams().GetConsensus();
 
     // BIP16 didn't become active until Apr 1 2012
     int64_t nBIP16SwitchTime = 1333238400;
-    bool fStrictPayToScriptHash = (pindex->GetBlockTime() >= nBIP16SwitchTime);
+    bool fStrictPayToScriptHash = (pChainTip->GetBlockTime() >= nBIP16SwitchTime);
 
     uint32_t flags =
         fStrictPayToScriptHash ? SCRIPT_VERIFY_P2SH : SCRIPT_VERIFY_NONE;
 
     // Start enforcing the DERSIG (BIP66) rule
-    if (pindex->nHeight >= consensusparams.BIP66Height) {
+    if ((pChainTip->nHeight + 1) >= consensusparams.BIP66Height) {
         flags |= SCRIPT_VERIFY_DERSIG;
     }
 
     // Start enforcing CHECKLOCKTIMEVERIFY (BIP65) rule
-    if (pindex->nHeight >= consensusparams.BIP65Height) {
+    if ((pChainTip->nHeight + 1) >= consensusparams.BIP65Height) {
         flags |= SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY;
     }
 
     // Start enforcing BIP112 (CHECKSEQUENCEVERIFY) using versionbits logic.
-    if (VersionBitsState(pindex->pprev, consensusparams,
-                         Consensus::DEPLOYMENT_CSV,
+    if (VersionBitsState(pChainTip, consensusparams, Consensus::DEPLOYMENT_CSV,
                          versionbitscache) == THRESHOLD_ACTIVE) {
         flags |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
     }
 
     // If the UAHF is enabled, we start accepting replay protected txns
-    if(IsCDHFenabled(config, pindex->pprev)){
+    if(IsCDHFenabled(config, pChainTip)){
         flags |= SCRIPT_VERIFY_STRICTENC;
         flags |= SCRIPT_ENABLE_SIGHASH_FORKID;
         flags |= SCRIPT_ENABLE_CHANGE_FORKID;
-    } else if (IsUAHFenabled(config, pindex->pprev)) {
+    } else if (IsUAHFenabled(config, pChainTip)) {
         flags |= SCRIPT_VERIFY_STRICTENC;
         flags |= SCRIPT_ENABLE_SIGHASH_FORKID;
     }
@@ -1883,9 +1931,14 @@ static uint32_t GetBlockScriptFlags(const CBlockIndex *pindex,
     // s in their signature. We also make sure that signature that are supposed
     // to fail (for instance in multisig or other forms of smart contracts) are
     // null.
-    if (IsDAAEnabled(config, pindex->pprev)) {
+    if (IsDAAEnabled(config, pChainTip)) {
         flags |= SCRIPT_VERIFY_LOW_S;
         flags |= SCRIPT_VERIFY_NULLFAIL;
+    }
+
+    // The monolith HF enable a set of opcodes.
+    if (IsMonolithEnabled(config, pChainTip)) {
+        flags |= SCRIPT_ENABLE_MONOLITH_OPCODES;
     }
 
     return flags;
@@ -2039,7 +2092,7 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
         nLockTimeFlags |= LOCKTIME_VERIFY_SEQUENCE;
     }
 
-    uint32_t flags = GetBlockScriptFlags(pindex, config);
+    const uint32_t flags = GetBlockScriptFlags(config, pindex->pprev);
 
     int64_t nTime2 = GetTimeMicros();
     nTimeForks += nTime2 - nTime1;
@@ -2209,11 +2262,6 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
     nTimeIndex += nTime5 - nTime4;
     LogPrint("bench", "    - Index writing: %.2fms [%.2fs]\n",
              0.001 * (nTime5 - nTime4), nTimeIndex * 0.000001);
-
-    // Watch for changes to the previous coinbase transaction.
-    static uint256 hashPrevBestCoinBase;
-    GetMainSignals().UpdatedTransaction(hashPrevBestCoinBase);
-    hashPrevBestCoinBase = block.vtx[0]->GetId();
 
     int64_t nTime6 = GetTimeMicros();
     nTimeCallbacks += nTime6 - nTime5;
@@ -2474,7 +2522,8 @@ static bool DisconnectTip(const Config &config, CValidationState &state,
     assert(pindexDelete);
 
     // Read block from disk.
-    CBlock block;
+    std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
+    CBlock &block = *pblock;
     if (!ReadBlockFromDisk(block, pindexDelete, config)) {
         return AbortNode(state, "Failed to read block");
     }
@@ -2483,6 +2532,7 @@ static bool DisconnectTip(const Config &config, CValidationState &state,
     int64_t nStart = GetTimeMicros();
     {
         CCoinsViewCache view(pcoinsTip);
+        assert(view.GetBestBlock() == pindexDelete->GetBlockHash());
         if (DisconnectBlock(block, pindexDelete, view) != DISCONNECT_OK) {
             return error("DisconnectTip(): DisconnectBlock %s failed",
                          pindexDelete->GetBlockHash().ToString());
@@ -2500,6 +2550,19 @@ static bool DisconnectTip(const Config &config, CValidationState &state,
         return false;
     }
 
+        // If this block was deactivating the replay protection, then we need to
+    // remove transactions that are replay protected from the mempool. There is
+    // no easy way to do this so we'll just discard the whole mempool and then
+    // add the transaction of the block we just disconnected back.
+    //
+    // Samewise, if this block enabled the monolith opcodes, then we need to
+    // clear the mempool of any transaction using them.
+    if ((IsMonolithEnabled(config, pindexDelete) &&
+         !IsMonolithEnabled(config, pindexDelete->pprev))) {
+        mempool.clear();
+    }
+    //Yang ?
+    
     if (!fBare) {
         // Resurrect mempool transactions from the disconnected block.
         std::vector<uint256> vHashUpdate;
@@ -2509,7 +2572,7 @@ static bool DisconnectTip(const Config &config, CValidationState &state,
             CValidationState stateDummy;
             if (tx.IsCoinBase() ||
                 !AcceptToMemoryPool(config, mempool, stateDummy, it, false,
-                                    nullptr, nullptr, true)) {
+                                    nullptr, true)) {
                 mempool.removeRecursive(tx, MemPoolRemovalReason::REORG);
             } else if (mempool.exists(tx.GetId())) {
                 vHashUpdate.push_back(tx.GetId());
@@ -2917,6 +2980,12 @@ bool ActivateBestChain(const Config &config, CValidationState &state,
     // Write changes periodically to disk, after relay.
     if (!FlushStateToDisk(state, FLUSH_STATE_PERIODIC)) {
         return false;
+    }
+
+    int nStopAtHeight = GetArg("-stopatheight", DEFAULT_STOPATHEIGHT);
+    if (nStopAtHeight && pindexNewTip &&
+        pindexNewTip->nHeight >= nStopAtHeight) {
+        StartShutdown();
     }
 
     return true;
@@ -3511,6 +3580,17 @@ bool ContextualCheckBlock(const Config &config, const CBlock &block,
     if (VersionBitsState(pindexPrev, consensusParams, Consensus::DEPLOYMENT_CSV,
                          versionbitscache) == THRESHOLD_ACTIVE) {
         nLockTimeFlags |= LOCKTIME_MEDIAN_TIME_PAST;
+    }
+    //Yang? 
+    if (!IsMonolithEnabled(config, pindexPrev)) {
+        // When the May 15, 2018 HF is not enabled, block cannot be bigger
+        // than 8MB .
+        const uint64_t currentBlockSize =
+            ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION);
+        if (currentBlockSize > 8 * ONE_MEGABYTE) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-blk-length",
+                             false, "size limits failed");
+        }
     }
 
     const int64_t nMedianTimePast =
@@ -4285,6 +4365,7 @@ bool CVerifyDB::VerifyDB(const Config &config, CCoinsView *coinsview,
         if (nCheckLevel >= 3 && pindex == pindexState &&
             (coins.DynamicMemoryUsage() + pcoinsTip->DynamicMemoryUsage()) <=
                 nCoinCacheUsage) {
+            assert(coins.GetBestBlock() == pindex->GetBlockHash());
             DisconnectResult res = DisconnectBlock(block, pindex, coins);
             if (res == DISCONNECT_FAILED) {
                 return error("VerifyDB(): *** irrecoverable inconsistency in "

@@ -1689,7 +1689,6 @@ static bool ProcessMessage(const Config &config, CNode *pfrom,
     else if (strCommand == NetMsgType::ADDR) {
         std::vector<CAddress> vAddr;
         vRecv >> vAddr;
-
         // Don't want addr from older versions unless seeding
         if (pfrom->nVersion < CADDR_TIME_VERSION &&
             connman.GetAddressCount() > 1000) {
@@ -1709,9 +1708,10 @@ static bool ProcessMessage(const Config &config, CNode *pfrom,
             if (interruptMsgProc) {
                 return true;
             }
-
-            if (addr.GetPort() != chainparams.GetDefaultPort()) continue;
-
+          
+            
+            if(addr.GetPort()!=chainparams.GetDefaultPort(fCDYBootstrapping)) continue;
+            
             if ((addr.nServices & REQUIRED_SERVICES) != REQUIRED_SERVICES) {
                 continue;
             }
@@ -2087,11 +2087,8 @@ static bool ProcessMessage(const Config &config, CNode *pfrom,
         pfrom->setAskFor.erase(inv.hash);
         mapAlreadyAskedFor.erase(inv.hash);
 
-        std::list<CTransactionRef> lRemovedTxn;
-
-        if (!AlreadyHave(inv) &&
-            AcceptToMemoryPool(config, mempool, state, ptx, true,
-                               &fMissingInputs, &lRemovedTxn)) {
+        if (!AlreadyHave(inv) && AcceptToMemoryPool(config, mempool, state, ptx,
+                                                    true, &fMissingInputs)) {
             mempool.check(pcoinsTip);
             RelayTransaction(tx, connman);
             for (size_t i = 0; i < tx.vout.size(); i++) {
@@ -2132,8 +2129,7 @@ static bool ProcessMessage(const Config &config, CNode *pfrom,
                         continue;
                     }
                     if (AcceptToMemoryPool(config, mempool, stateDummy,
-                                           porphanTx, true, &fMissingInputs2,
-                                           &lRemovedTxn)) {
+                                           porphanTx, true, &fMissingInputs2)) {
                         LogPrint("mempool", "   accepted orphan tx %s\n",
                                  orphanId.ToString());
                         RelayTransaction(orphanTx, connman);
@@ -2248,10 +2244,6 @@ static bool ProcessMessage(const Config &config, CNode *pfrom,
                               FormatStateMessage(state));
                 }
             }
-        }
-
-        for (const CTransactionRef &removedTx : lRemovedTxn) {
-            AddToCompactExtraTransactions(removedTx);
         }
 
         int nDoS = 0;

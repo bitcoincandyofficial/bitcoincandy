@@ -128,7 +128,7 @@ public:
         consensus.nDigishieldMaxAdjustUp = 16;
 
         consensus.nZawyLwmaAveragingWindow = 60;
-        consensus.CDYMaxFutureBlockTime = 7 * 2 * 60; //
+        consensus.CDYMaxFutureBlockTime = 500; //
         
         // two weeks
         consensus.nPowTargetTimespanLegacy = 14 * 24 * 60 * 60;
@@ -175,6 +175,9 @@ public:
 
         //  hard fork-----add by hmc
         consensus.cdyHeight = 512666;
+
+        //  hard fork
+        consensus.nNewRuleHeight = 591007;
         
 
 
@@ -241,6 +244,9 @@ public:
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
         fMineBlocksOnDemand = false;
+
+         // May 13, 2018 hard fork
+        consensus.monolithActivationTime = 1526194800;
 
         checkpointData = {
             .mapCheckpoints = {
@@ -319,7 +325,7 @@ public:
         consensus.nDigishieldMaxAdjustUp = 16;
 
         consensus.nZawyLwmaAveragingWindow = 60;
-        consensus.CDYMaxFutureBlockTime = 7 * 2 * 60; // 14 mins
+        consensus.CDYMaxFutureBlockTime = 500;
         // two weeks
         consensus.nPowTargetTimespanLegacy = 14 * 24 * 60 * 60;
         consensus.nPowTargetSpacing = 10 * 60;
@@ -364,6 +370,8 @@ public:
         
         //  hard fork-----add by hmc
         consensus.cdyHeight = 201601;
+
+        consensus.nNewRuleHeight = 201700;
         
         consensus.CDYZawyLWMAHeight = 201681; 
         consensus.BitcoinPostforkBlock = uint256S("00000000d16d6c2aecc7436eea0c54a53741fee9abf265606aa465d6fd3f3d8a"); // block 201601
@@ -425,12 +433,16 @@ public:
         fRequireStandard = false;
         fMineBlocksOnDemand = false;
 
+
+        consensus.monolithActivationTime = 1525609241;
+
         checkpointData = {
             .mapCheckpoints = {
                 {546, uint256S("000000002a936ca763904c3c35fce2f3556c559c0214345"
                                "d31b1bcebf76acb70")},
                 // UAHF fork block.
                 {1155876, uint256S("00000000000e38fef93ed9582a7df43815d5c2ba9fd"
+
                                    "37ef70c9a0ea4a285b8f5")},
                 // Nov, 13. DAA activation block.
                 {1188697, uint256S("0000000000170ed0918077bde7b4d36cc4c91be69fa"
@@ -505,6 +517,8 @@ public:
         //  hard fork-----add by hmc
         consensus.cdyHeight = 2260;
 
+        consensus.nNewRuleHeight = 201836;
+
         // Nov, 13 hard fork is always on on regtest.
         consensus.daaHeight = 2250;
          
@@ -543,6 +557,9 @@ public:
         fDefaultConsistencyChecks = true;
         fRequireStandard = false;
         fMineBlocksOnDemand = true;
+
+         // May 1, 2018 hard fork
+        consensus.monolithActivationTime = 1526400000;
 
         checkpointData = {.mapCheckpoints = {
                               {0, uint256S("0f9188f13cb7b2c71f2a335e3a4fc328bf5"

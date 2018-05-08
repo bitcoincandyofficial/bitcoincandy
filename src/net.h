@@ -58,9 +58,6 @@ static const int FEELER_INTERVAL = 120;
 static const unsigned int MAX_INV_SZ = 50000;
 /** The maximum number of new addresses to accumulate before announcing. */
 static const unsigned int MAX_ADDR_TO_SEND = 1000;
-/** Maximum length of incoming protocol messages (no message over 32 MB is
- * currently acceptable). */
-static const unsigned int MAX_PROTOCOL_MESSAGE_LENGTH = 32 * 1000 * 1000;
 /** Maximum length of strSubVer in `version` message */
 static const unsigned int MAX_SUBVERSION_LENGTH = 256;
 /** Maximum number of automatic outgoing nodes */
@@ -91,7 +88,7 @@ static const bool DEFAULT_BLOCKSONLY = false;
 // Force DNS seed use ahead of UAHF fork, to ensure peers are found
 // as long as seeders are working.
 // TODO: Change this back to false after the forked network is stable.
-static const bool DEFAULT_FORCEDNSSEED = false;
+static const bool DEFAULT_FORCEDNSSEED = true;
 static const size_t DEFAULT_MAXRECEIVEBUFFER = 5 * 1000;
 static const size_t DEFAULT_MAXSENDBUFFER = 1 * 1000;
 
@@ -745,7 +742,8 @@ public:
         return nRefCount;
     }
 
-    bool ReceiveMsgBytes(const char *pch, unsigned int nBytes, bool &complete);
+    bool ReceiveMsgBytes(const Config &config, const char *pch, uint32_t nBytes,
+                         bool &complete);
 
     void SetRecvVersion(int nVersionIn) { nRecvVersion = nVersionIn; }
     int GetRecvVersion() { return nRecvVersion; }

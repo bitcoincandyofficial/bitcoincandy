@@ -128,6 +128,10 @@ enum {
     
     //add by hmc
     SCRIPT_ENABLE_CHANGE_FORKID = (1U << 17),
+    
+    // Enable new opcodes.
+    //
+    SCRIPT_ENABLE_MONOLITH_OPCODES = (1U << 18),
 };
 
 bool CheckSignatureEncoding(const std::vector<uint8_t> &vchSig, uint32_t flags,

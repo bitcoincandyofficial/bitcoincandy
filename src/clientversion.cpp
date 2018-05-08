@@ -43,11 +43,10 @@ const std::string CLIENT_NAME("Bitcoin Candy");
 #endif
 
 //! git will put "#define GIT_ARCHIVE 1" on the next line inside archives.
-//! 
-#define GIT_ARCHIVE 1
+//! $Format:%n#define GIT_ARCHIVE 1$
 #ifdef GIT_ARCHIVE
-#define GIT_COMMIT_ID "c41ba103a"
-#define GIT_COMMIT_DATE "Thu, 8 Feb 2018 00:41:21 +0800"
+#define GIT_COMMIT_ID "$Format:%h$"
+#define GIT_COMMIT_DATE "$Format:%cD$"
 #endif
 
 #define BUILD_DESC_WITH_SUFFIX(maj, min, rev, build, suffix)                   \

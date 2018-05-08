@@ -52,10 +52,15 @@ struct Params {
     int uahfHeight;
     /** Block height at which CDHF kicks in --add by hmc*/
     int cdyHeight;
+    /** Block height at which the new daa rule becomes active */
+    int nNewRuleHeight;
     /** Block height at which Zawy's LWMA difficulty algorithm becomes active */
     int CDYZawyLWMAHeight;
     /** Limit BITCOIN_MAX_FUTURE_BLOCK_TIME **/
     int64_t CDYMaxFutureBlockTime;
+    
+    /** Unix time used for MTP activation of May 15 2018, hardfork */
+    int monolithActivationTime;
     
     /** Block height at which the new DAA becomes active */
     /** The first post-fork block of Bitcoin blockchain. **/

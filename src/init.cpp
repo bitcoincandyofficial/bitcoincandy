@@ -636,6 +636,10 @@ std::string HelpMessage(HelpMessageMode mode) {
                 "Stop running after importing blocks from disk (default: %d)",
                 DEFAULT_STOPAFTERBLOCKIMPORT));
         strUsage += HelpMessageOpt(
+            "-stopatheight", strprintf("Stop running after reaching the given "
+                                       "height in the main chain (default: %u)",
+                                       DEFAULT_STOPATHEIGHT));
+        strUsage += HelpMessageOpt(
             "-limitancestorcount=<n>",
             strprintf("Do not accept transactions if number of in-mempool "
                       "ancestors is <n> or more (default: %u)",
@@ -722,6 +726,11 @@ std::string HelpMessage(HelpMessageMode mode) {
                       DEFAULT_MAX_TIP_AGE));
     }
     strUsage += HelpMessageOpt(
+        "-excessutxocharge=<amt>",
+        strprintf(_("Fees (in %s/kB) to charge per utxo created for"
+                    "relaying, and mining (default: %s)"),
+                  CURRENCY_UNIT, FormatMoney(DEFAULT_UTXO_FEE)));
+    strUsage += HelpMessageOpt(
         "-minrelaytxfee=<amt>",
         strprintf(
             _("Fees (in %s/kB) smaller than this are considered zero fee for "
@@ -760,7 +769,7 @@ std::string HelpMessage(HelpMessageMode mode) {
             HelpMessageOpt("-excessiveblocksize=<n>",
                            strprintf(_("Do not accept blocks larger than this "
                                        "limit, in bytes (default: %d)"),
-                                     LEGACY_MAX_BLOCK_SIZE));
+                                     DEFAULT_MAX_BLOCK_SIZE));
         strUsage += HelpMessageOpt(
             "-incrementalrelayfee=<amt>",
             strprintf(
@@ -1463,6 +1472,18 @@ bool AppInitParameterInteraction(Config &config) {
     nConnectTimeout = GetArg("-timeout", DEFAULT_CONNECT_TIMEOUT);
     if (nConnectTimeout <= 0) nConnectTimeout = DEFAULT_CONNECT_TIMEOUT;
 
+    // Obtain the amount to charge excess UTXO
+    if (IsArgSet("-excessutxocharge")) {
+        Amount n(0);
+        auto parsed = ParseMoney(GetArg("-excessutxocharge", ""), n);
+        if (!parsed || Amount(0) > n)
+            return InitError(AmountErrMsg(
+                "excessutxocharge", GetArg("-excessutxocharge", "")));
+        config.SetExcessUTXOCharge(n);
+    } else {
+        config.SetExcessUTXOCharge(DEFAULT_UTXO_FEE);
+    }
+
     // Fee-per-kilobyte amount considered the same as "free". If you are mining,
     // be careful setting this: if you set it to zero then a transaction spammer
     // can cheaply fill blocks using 1-satoshi-fee transactions. It should be
@@ -1519,7 +1540,6 @@ bool AppInitParameterInteraction(Config &config) {
     fIsBareMultisigStd =
         GetBoolArg("-permitbaremultisig", DEFAULT_PERMIT_BAREMULTISIG);
     fAcceptDatacarrier = GetBoolArg("-datacarrier", DEFAULT_ACCEPT_DATACARRIER);
-    nMaxDatacarrierBytes = GetArg("-datacarriersize", nMaxDatacarrierBytes);
 
     // Option to startup with mocktime set (used for regression testing):
     SetMockTime(GetArg("-mocktime", 0)); // SetMockTime(0) is a no-op
@@ -1679,8 +1699,8 @@ bool AppInitMain(Config &config, boost::thread_group &threadGroup,
         }
     }
 
-    //fCDYBootstrapping = GetBoolArg("-bootstrap", false);
-    //fSkipHardforkIBD = GetBoolArg("-skiphardforkibd", false);
+    fCDYBootstrapping = GetBoolArg("-bootstrap", false);
+    fSkipHardforkIBD = GetBoolArg("-skiphardforkibd", false);
 
     // Start the lightweight task scheduler thread
     CScheduler::Function serviceLoop =

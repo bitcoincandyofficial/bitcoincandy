@@ -57,3 +57,11 @@ bool GlobalConfig::UseCashAddrEncoding() const {
 const CChainParams &DummyConfig::GetChainParams() const {
     return Params(CBaseChainParams::REGTEST);
 }
+
+void GlobalConfig::SetExcessUTXOCharge(Amount fee) {
+    excessUTXOCharge = fee;
+}
+
+Amount GlobalConfig::GetExcessUTXOCharge() const {
+    return excessUTXOCharge;
+}

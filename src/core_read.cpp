@@ -26,9 +26,8 @@ CScript ParseScript(const std::string &s) {
     static std::map<std::string, opcodetype> mapOpNames;
 
     if (mapOpNames.empty()) {
-        for (int op = 0; op <= OP_NOP10; op++) {
-            // Allow OP_RESERVED to get into mapOpNames
-            if (op < OP_NOP && op != OP_RESERVED) {
+        for (int op = 0; op < FIRST_UNDEFINED_OP_VALUE; op++) {
+            if (op < OP_PUSHDATA1) {
                 continue;
             }
 
@@ -49,38 +48,104 @@ CScript ParseScript(const std::string &s) {
     boost::algorithm::split(words, s, boost::algorithm::is_any_of(" \t\n"),
                             boost::algorithm::token_compress_on);
 
-    for (std::vector<std::string>::const_iterator w = words.begin();
-         w != words.end(); ++w) {
-        if (w->empty()) {
+    size_t push_size = 0, next_push_size = 0;
+    size_t script_size = 0;
+
+    for (const auto &w : words) {
+        if (w.empty()) {
             // Empty string, ignore. (boost::split given '' will return one
             // word)
-        } else if (all(*w, boost::algorithm::is_digit()) ||
-                   (boost::algorithm::starts_with(*w, "-") &&
-                    all(std::string(w->begin() + 1, w->end()),
+            continue;
+        }
+
+        // Check that the expected number of byte where pushed.
+        if (push_size && (result.size() - script_size) != push_size) {
+            throw std::runtime_error(
+                "Hex number doesn't match the number of bytes being pushed");
+        }
+
+        // Update script size.
+        script_size = result.size();
+
+        // Make sure we keep track of the size of push operations.
+        push_size = next_push_size;
+        next_push_size = 0;
+
+        if (all(w, boost::algorithm::is_digit()) ||
+            (boost::algorithm::starts_with(w, "-") &&
+             all(std::string(w.begin() + 1, w.end()),
                         boost::algorithm::is_digit()))) {
             // Number
-            int64_t n = atoi64(*w);
+            int64_t n = atoi64(w);
             result << n;
-        } else if (boost::algorithm::starts_with(*w, "0x") &&
-                   (w->begin() + 2 != w->end()) &&
-                   IsHex(std::string(w->begin() + 2, w->end()))) {
+            continue;
+        }
+
+        if (boost::algorithm::starts_with(w, "0x") &&
+            (w.begin() + 2 != w.end())) {
+            if (!IsHex(std::string(w.begin() + 2, w.end()))) {
+                // Should only arrive here for improperly formatted hex values
+                throw std::runtime_error("Hex numbers expected to be formatted "
+                                         "in full-byte chunks (ex: 0x00 "
+                                         "instead of 0x0)");
+            }
+
             // Raw hex data, inserted NOT pushed onto stack:
             std::vector<uint8_t> raw =
-                ParseHex(std::string(w->begin() + 2, w->end()));
+                ParseHex(std::string(w.begin() + 2, w.end()));
+            if (push_size && raw.size() != push_size) {
+                throw std::runtime_error("Hex number doesn't match the "
+                                         "number of bytes being pushed");
+            }
+            // If we have what looks like an immediate push, figure out its
+            // size.
+            if (!push_size && raw.size() == 1 && raw[0] < OP_PUSHDATA1) {
+                next_push_size = raw[0];
+            }
+
             result.insert(result.end(), raw.begin(), raw.end());
-        } else if (w->size() >= 2 && boost::algorithm::starts_with(*w, "'") &&
-                   boost::algorithm::ends_with(*w, "'")) {
+            continue;
+        }
+
+        if (w.size() >= 2 && boost::algorithm::starts_with(w, "'") &&
+            boost::algorithm::ends_with(w, "'")) {
             // Single-quoted string, pushed as data. NOTE: this is poor-man's
             // parsing, spaces/tabs/newlines in single-quoted strings won't
             // work.
-            std::vector<uint8_t> value(w->begin() + 1, w->end() - 1);
+            std::vector<uint8_t> value(w.begin() + 1, w.end() - 1);
             result << value;
-        } else if (mapOpNames.count(*w)) {
-            // opcode, e.g. OP_ADD or ADD:
-            result << mapOpNames[*w];
-        } else {
-            throw std::runtime_error("script parse error");
+            continue;
         }
+
+        if (mapOpNames.count(w)) {
+            // opcode, e.g. OP_ADD or ADD:
+            opcodetype op = mapOpNames[w];
+
+            switch (op) {
+                case OP_PUSHDATA1:
+                    next_push_size = 1;
+                    break;
+                case OP_PUSHDATA2:
+                    next_push_size = 2;
+                    break;
+                case OP_PUSHDATA4:
+                    next_push_size = 4;
+                    break;
+                default:
+                    break;
+        }
+
+            result << op;
+            continue;
+    }
+
+        throw std::runtime_error("Error parsing script: " + s);
+    }
+
+    // Check that the expected number of byte where pushed.
+    if (push_size && (result.size() - script_size) != push_size) {
+        throw std::runtime_error(
+            "Hex number doesn't match the number of bytes being pushed");
     }
 
     return result;
