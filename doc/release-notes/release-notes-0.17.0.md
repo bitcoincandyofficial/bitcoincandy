@@ -1,4 +1,6 @@
 Bitcoin Candy version 0.17.0 is available now.
+
+
 https://github.com/bitcoincandyofficial/bitcoincandy/releases/tag/0.17.0
 
 This release includes the following features and fixes:
