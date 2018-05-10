@@ -1,6 +1,8 @@
 Bitcoin Candy version 0.17.0 is available now.
 
 
+https://github.com/bitcoincandyofficial/bitcoincandy/releases/tag/0.17.0
+
 This release includes the following features and fixes:
 
 - Increase the maximum blocksize to 32,000,000 bytes
