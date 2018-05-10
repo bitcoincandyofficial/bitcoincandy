@@ -177,7 +177,7 @@ public:
         consensus.cdyHeight = 512666;
 
         //  hard fork
-        consensus.nNewRuleHeight = 591007;
+        consensus.nNewRuleHeight = 592447;
         
 
 
@@ -245,8 +245,8 @@ public:
         fRequireStandard = true;
         fMineBlocksOnDemand = false;
 
-         // May 13, 2018 hard fork
-        consensus.monolithActivationTime = 1526194800;
+         // May 15, 2018 hard fork
+        consensus.monolithActivationTime = 1526389200;
 
         checkpointData = {
             .mapCheckpoints = {
@@ -371,9 +371,9 @@ public:
         //  hard fork-----add by hmc
         consensus.cdyHeight = 201601;
 
-        consensus.nNewRuleHeight = 201700;
+        consensus.nNewRuleHeight = 201651;
         
-        consensus.CDYZawyLWMAHeight = 201681; 
+        consensus.CDYZawyLWMAHeight = 201641; 
         consensus.BitcoinPostforkBlock = uint256S("00000000d16d6c2aecc7436eea0c54a53741fee9abf265606aa465d6fd3f3d8a"); // block 201601
         consensus.BitcoinPostforkTime = 1393815074;
 

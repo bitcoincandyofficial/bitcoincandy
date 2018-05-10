@@ -112,18 +112,18 @@ unsigned int LwmaGetNextWorkRequired(const CBlockIndex* pindexPrev, const CBlock
 
 unsigned int LwmaCalculateNextWorkRequired(const CBlockIndex* pindexPrev, const Consensus::Params& params)
 {
- if (params.fPowNoRetargeting) {
+    if (params.fPowNoRetargeting) {
         return pindexPrev->nBits;
     }
 
-    const int N = params.nZawyLwmaAveragingWindow;  
+    int N = params.nZawyLwmaAveragingWindow;  
     const int T = params.nPowTargetSpacingCDY; //2 minutes
     const int height = pindexPrev->nHeight + 1;
-    const int nNewRuleHeight = params.nNewRuleHeight; //determine it later 
+    const int nNewRuleHeight = params.nNewRuleHeight; 
     double adjust = 1;//0.998;
     
     assert(height > N);
-
+    if(height>nNewRuleHeight) N = 45;
     arith_uint256 sum_target, sum_last10_target;
     int sum_time = 0, nWeight = 0;
     
@@ -168,24 +168,29 @@ unsigned int LwmaCalculateNextWorkRequired(const CBlockIndex* pindexPrev, const 
     arith_uint256 next_target;
     next_target = 2 * (sum_time/(N*(N+1)))* (sum_target/N) * adjust/T;  // next_target = LWMA * avgTarget * adjust /T;   
     
-    /*if the last 10 blocks are generated in 5 minutes, we tripple the difficulty of the average of the last 10 blocks*/
+    /*if the last 10 blocks are generated in 5 minutes, we tripple the difficulty of average of the last 10 blocks*/
     if(height>nNewRuleHeight && sum_last10_time <= 5*60)   
     {  
         arith_uint256 avg_last10_target;
         avg_last10_target = sum_last10_target/10;
-        if(next_target > avg_last10_target/3)  next_target = avg_last10_target/3;   
+        if(next_target > avg_last10_target/2)  next_target = avg_last10_target/2;   
     }
-    else if(height>nNewRuleHeight)
+    else if(height>nNewRuleHeight && sum_last10_time <= 10*60)
     {            
+        arith_uint256 avg_last10_target;
+        avg_last10_target = sum_last10_target/10;
+        if(next_target > avg_last10_target*2/3)  next_target = avg_last10_target*2/3;   
+    }
+    
+    if(height>nNewRuleHeight)
+    {
         arith_uint256 last_target;
-        last_target.SetCompact(pindexPrev->nBits);
-        
-        if(next_target> last_target*6/5) next_target = last_target*6/5;    
+        last_target.SetCompact(pindexPrev->nBits);       
+        if(next_target> last_target*13/10) next_target = last_target*13/10;    
         /*in case difficulty drops too soon compared to the last block, especially
          *when the effect of the last rule wears off in the new block
          *DAA will switch to normal LWMA and cause dramatically diff drops*/
     }
-    
     if (next_target > pow_limit ){
         return pow_limit.GetCompact();
     }
