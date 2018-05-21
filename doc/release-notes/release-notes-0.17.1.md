@@ -21,4 +21,4 @@ Some modifications port from Bitcoin Cash such as :
 - Changing maximum length of incoming protocol messages from 32MB to 4MB (no message over 4 MB is acceptable).
 
 
-New DAA will be activted after block height 591007 and other consensus rules will take effect after MTP time of 1526194800(Sunday, 13-May-18 07:00:00 UTC).
+New DAA will be activted after block height 592447 and other consensus rules will take effect after MTP time of 1526389200(Tue May 15 13:00:00 UTC, 2018).
