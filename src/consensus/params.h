@@ -56,6 +56,8 @@ struct Params {
     int nNewRuleHeight;
     /** Block height at which Zawy's LWMA difficulty algorithm becomes active */
     int CDYZawyLWMAHeight;
+    /** Block height at which Equihash<144,5> becomes active */
+    int CDYEquihashForkHeight;
     /** Limit BITCOIN_MAX_FUTURE_BLOCK_TIME **/
     int64_t CDYMaxFutureBlockTime;
     

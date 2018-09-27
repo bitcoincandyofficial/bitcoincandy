@@ -119,15 +119,17 @@ unsigned int LwmaCalculateNextWorkRequired(const CBlockIndex* pindexPrev, const 
     int N = params.nZawyLwmaAveragingWindow;  
     const int T = params.nPowTargetSpacingCDY; //2 minutes
     const int height = pindexPrev->nHeight + 1;
-    const int nNewRuleHeight = params.nNewRuleHeight; 
+    const int nNewRuleHeight = params.nNewRuleHeight;
+    const int CDYEquihashForkHeight= params.CDYEquihashForkHeight; 
     double adjust = 1;//0.998;
     
     assert(height > N);
     if(height>nNewRuleHeight) N = 45;
-    arith_uint256 sum_target, sum_last10_target;
+    arith_uint256 sum_target, sum_last10_target,sum_last5_target;
     int sum_time = 0, nWeight = 0;
     
     int sum_last10_time=0;  //Solving time of the last ten block
+    int sum_last5_time=0;
 
     // Loop through N most recent blocks.
     for (int i = height - N; i < height; i++) {
@@ -151,6 +153,12 @@ unsigned int LwmaCalculateNextWorkRequired(const CBlockIndex* pindexPrev, const 
         {
             sum_last10_time += solvetime;
             sum_last10_target += target;
+	    if(i >= height-5) 
+            {
+              sum_last5_time += solvetime;
+              sum_last5_target += target;
+            }     
+
         }       
 
     }
@@ -169,7 +177,12 @@ unsigned int LwmaCalculateNextWorkRequired(const CBlockIndex* pindexPrev, const 
     next_target = 2 * (sum_time/(N*(N+1)))* (sum_target/N) * adjust/T;  // next_target = LWMA * avgTarget * adjust /T;   
     
     /*if the last 10 blocks are generated in 5 minutes, we tripple the difficulty of average of the last 10 blocks*/
-    if(height>nNewRuleHeight && sum_last10_time <= 5*60)   
+     if(height>CDYEquihashForkHeight && sum_last5_time <= 90)
+    {
+        arith_uint256 avg_last5_target;
+        avg_last5_target = sum_last5_target/5;
+        if(next_target > avg_last5_target/4)  next_target = avg_last5_target/4;   
+    }else if(height>nNewRuleHeight && sum_last10_time <= 5*60)   
     {  
         arith_uint256 avg_last10_target;
         avg_last10_target = sum_last10_target/10;
@@ -228,7 +241,17 @@ uint32_t GetNextWorkRequired(const CBlockIndex *pindexPrev,
     else if (nHeight < params.CDYZawyLWMAHeight) {
         // Regular Digishield v3.
         return DigishieldGetNextWorkRequired(pindexPrev, pblock, params);
-    } else {
+    } 
+    else if(nHeight >= params.CDYEquihashForkHeight && nHeight <  (params.CDYEquihashForkHeight +params.nZawyLwmaAveragingWindow))
+    {
+        if (nHeight == params.CDYEquihashForkHeight) {
+            return ReduceDifficultyBy(pindexPrev, 100, params);
+        } else {
+            return pindexPrev->nBits;
+        }
+    }
+    else 
+    {
         // Zawy's LWMA.
         return LwmaGetNextWorkRequired(pindexPrev, pblock, params);
     }
@@ -439,15 +462,16 @@ unsigned int CalculateBCCNextWorkRequired(const CBlockIndex* pindexPrev, int64_t
     if (bnNew > bnPowLimit) bnNew = bnPowLimit;
     return bnNew.GetCompact();
 }
-
 bool CheckEquihashSolution(const CBlockHeader *pblock, const CChainParams& params)
 {
-    unsigned int n = params.EquihashN();
-    unsigned int k = params.EquihashK();
+    int height = pblock->nHeight;
+    unsigned int n = params.EquihashN(height);
+    unsigned int k = params.EquihashK(height);
 
     // Hash state
     crypto_generichash_blake2b_state state;
-    EhInitialiseState(n, k, state);
+    EhInitialiseState(n, k, state, params.EquihashUseCDYSalt(height));
+
 
     // I = the block header minus nonce and solution.
     CEquihashInput I{*pblock};
@@ -547,4 +571,15 @@ unsigned int BitcoinGetNextWorkRequired(const CBlockIndex* pindexPrev, const CBl
     assert(pindexFirst);
 
     return BitcoinCalculateNextWorkRequired(pindexPrev, pindexFirst->GetBlockTime(), params);
+}
+
+unsigned int ReduceDifficultyBy(const CBlockIndex* pindexPrev, int64_t multiplier, const Consensus::Params& params) {
+    arith_uint256 target;
+    target.SetCompact(pindexPrev->nBits);
+    target *= multiplier;
+    const arith_uint256 pow_limit = UintToArith256(params.PowLimit(true));
+    if (target > pow_limit) {
+        target = pow_limit;
+    }
+    return target.GetCompact();
 }

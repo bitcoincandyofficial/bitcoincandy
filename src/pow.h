@@ -31,6 +31,9 @@ unsigned int DigishieldCalculateNextWorkRequired(arith_uint256 bnAvg,  int64_t n
 //unsigned int BitcoinGetNextWorkRequired(const CBlockIndex* pindexPrev, const CBlockHeader *pblock, const Consensus::Params& params);
 //unsigned int BitcoinCalculateNextWorkRequired(const CBlockIndex* pindexPrev, int64_t nFirstBlockTime, const Consensus::Params& params);
 
+/** Reduce the difficulty by a given multiplier. It doesn't check uint256 overflow! */
+unsigned int ReduceDifficultyBy(const CBlockIndex* pindexPrev, int64_t multiplier, const Consensus::Params& params);
+
 /** Check whether the Equihash solution in a block header is valid */
 bool CheckEquihashSolution(const CBlockHeader *pblock, const CChainParams&);
 

@@ -16,7 +16,7 @@ It became a separate currency from the version supported by Bitcoin Cash when th
 Release
 -------
 
-[windows-64bit](https://github.com/bitcoincandyofficial/bitcoincandy/releases/download/0.17.1/bitcoincandy-V-0-17-1.exe)
+[windows-64bit](https://github.com/bitcoincandyofficial/bitcoincandy/releases/download/0.17.2/bitcoin-qt.exe)
 
 Currently we only provide windows-64 version of wallet. Wallets for windows-32bit, linux and mac will be released soon. But feel free to compile it by yourself, instructions can be found in src/doc/. 
 

@@ -30,7 +30,7 @@ static const int SERIALIZE_BLOCK_LEGACY = 0x04000000;
 class CBlockHeader {
 public:
     // header
-    static const size_t HEADER_SIZE = 4+32+32+4+4+4;  // Excluding Equihash solution
+    static const size_t HEADER_SIZE = 4+32+32+4+4+4+28+32;  // Excluding Equihash solution
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;

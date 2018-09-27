@@ -128,7 +128,7 @@ public:
         consensus.nDigishieldMaxAdjustUp = 16;
 
         consensus.nZawyLwmaAveragingWindow = 60;
-        consensus.CDYMaxFutureBlockTime = 500; //
+        consensus.CDYMaxFutureBlockTime = 240; //
         
         // two weeks
         consensus.nPowTargetTimespanLegacy = 14 * 24 * 60 * 60;
@@ -178,10 +178,11 @@ public:
 
         //  hard fork
         consensus.nNewRuleHeight = 592447;
-        
+        consensus.CDYEquihashForkHeight = 656960; // Around 09/01/2018
 
 
         consensus.CDYZawyLWMAHeight = 573123;
+        
 
         consensus.BitcoinPostforkBlock = uint256S("0000000000000000007b746068bd08ba4089f97636690e9dc758774e7db21f17");	// 512666 block hash
         consensus.BitcoinPostforkTime = 1515799972;
@@ -209,9 +210,13 @@ public:
 		nBitcoinDefaultPort = 8333;
         nPruneAfterHeight = 100000;
         const size_t N = 200, K = 9;
+        const size_t N2 = 144, K2 = 5;
         BOOST_STATIC_ASSERT(equihash_parameters_acceptable(N, K));
+        BOOST_STATIC_ASSERT(equihash_parameters_acceptable(N2, K2));
         nEquihashN = N;
         nEquihashK = K;
+        nEquihashNnew = N2;
+        nEquihashKnew = K2;
 
         genesis = CreateGenesisBlock(1231006505, 2083236893, 0x1d00ffff, 1,
                                      50 * COIN);
@@ -325,7 +330,7 @@ public:
         consensus.nDigishieldMaxAdjustUp = 16;
 
         consensus.nZawyLwmaAveragingWindow = 60;
-        consensus.CDYMaxFutureBlockTime = 500;
+        consensus.CDYMaxFutureBlockTime = 240;
         // two weeks
         consensus.nPowTargetTimespanLegacy = 14 * 24 * 60 * 60;
         consensus.nPowTargetSpacing = 10 * 60;
@@ -372,6 +377,7 @@ public:
         consensus.cdyHeight = 201601;
 
         consensus.nNewRuleHeight = 201651;
+        consensus.CDYEquihashForkHeight = 201671;
         
         consensus.CDYZawyLWMAHeight = 201641; 
         consensus.BitcoinPostforkBlock = uint256S("00000000d16d6c2aecc7436eea0c54a53741fee9abf265606aa465d6fd3f3d8a"); // block 201601
@@ -398,12 +404,16 @@ public:
 
         // use different default
         nDefaultPort = 18367;
-	nBitcoinDefaultPort = 18333;
+	    nBitcoinDefaultPort = 18333;
         nPruneAfterHeight = 1000;
         const size_t N = 200, K = 9;
+        const size_t N2 = 144, K2 = 5;
         BOOST_STATIC_ASSERT(equihash_parameters_acceptable(N, K));
+        BOOST_STATIC_ASSERT(equihash_parameters_acceptable(N2, K2));
         nEquihashN = N;
         nEquihashK = K;
+        nEquihashNnew = N2;
+        nEquihashKnew = K2;
 
         genesis =
             CreateGenesisBlock(1296688602, 414098458, 0x1d00ffff, 1, 50 * COIN);
@@ -518,6 +528,7 @@ public:
         consensus.cdyHeight = 2260;
 
         consensus.nNewRuleHeight = 201836;
+        consensus.CDYEquihashForkHeight = 201876;
 
         // Nov, 13 hard fork is always on on regtest.
         consensus.daaHeight = 2250;
@@ -535,9 +546,13 @@ public:
         nDefaultPort = 18444;
         nPruneAfterHeight = 1000;
         const size_t N = 48, K = 5;
+        const size_t N2 = 96, K2 = 5;
         BOOST_STATIC_ASSERT(equihash_parameters_acceptable(N, K));
+        BOOST_STATIC_ASSERT(equihash_parameters_acceptable(N2, K2));
         nEquihashN = N;
         nEquihashK = K;
+        nEquihashNnew = N2;
+        nEquihashKnew = K2;
 
         genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash(consensus);
@@ -617,4 +632,9 @@ void SelectParams(const std::string &network) {
 void UpdateRegtestBIP9Parameters(Consensus::DeploymentPos d, int64_t nStartTime,
                                  int64_t nTimeout) {
     regTestParams.UpdateBIP9Parameters(d, nStartTime, nTimeout);
+}
+
+unsigned int CChainParams::EquihashSolutionWidth(int height) const
+{
+    return EhSolutionWidth(EquihashN(height), EquihashK(height));
 }

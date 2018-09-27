@@ -74,6 +74,28 @@ public:
     uint64_t PruneAfterHeight() const { return nPruneAfterHeight; }
     unsigned int EquihashN() const { return nEquihashN; }
     unsigned int EquihashK() const { return nEquihashK; }
+    unsigned int EquihashN(int height) const
+    {
+        if(height >= consensus.CDYEquihashForkHeight) {
+            return nEquihashNnew;
+        } else {
+            return nEquihashN;
+        }
+    }
+    unsigned int EquihashK(int height) const
+    {
+        if(height >= consensus.CDYEquihashForkHeight) {
+            return nEquihashKnew;
+        } else {
+            return nEquihashK;
+        }
+    }
+    bool EquihashUseCDYSalt(int height) const
+    {
+        return height >= consensus.CDYEquihashForkHeight;
+    }
+    unsigned int EquihashSolutionWidth(int height) const;
+
     /**
      * Make miner stop after a block is found. In RPC, don't return until
      * nGenProcLimit blocks are generated.
@@ -101,6 +123,8 @@ protected:
     int nBitcoinDefaultPort;
     unsigned int nEquihashN = 0;
     unsigned int nEquihashK = 0;
+    unsigned int nEquihashNnew = 0;
+    unsigned int nEquihashKnew = 0;
     uint64_t nPruneAfterHeight;
     std::vector<CDNSSeedData> vSeeds;
     std::vector<uint8_t> base58Prefixes[MAX_BASE58_TYPES];

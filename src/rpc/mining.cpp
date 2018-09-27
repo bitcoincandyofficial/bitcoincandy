@@ -132,8 +132,8 @@ static UniValue generateBlocks(const Config &config,
     unsigned int nExtraNonce = 0;
     UniValue blockHashes(UniValue::VARR);
     const CChainParams& params = config.GetChainParams();
-    unsigned int n = params.EquihashN();
-    unsigned int k = params.EquihashK();
+    unsigned int n;
+    unsigned int k;
     while (nHeight < nHeightEnd) {
         std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(config, Params()).CreateNewBlock(coinbaseScript->reserveScript));
         if (!pblocktemplate.get()) {
@@ -155,9 +155,10 @@ static UniValue generateBlocks(const Config &config,
             }
         } else {
             // Solve Equihash.
+            n = params.EquihashN(pblock->nHeight);
+            k = params.EquihashK(pblock->nHeight);
             crypto_generichash_blake2b_state eh_state;
-            EhInitialiseState(n, k, eh_state);
-
+            EhInitialiseState(n, k, eh_state, params.EquihashUseCDYSalt(pblock->nHeight));
             // I = the block header minus nonce and solution.
             CEquihashInput I{*pblock};
             CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
@@ -545,6 +546,8 @@ static UniValue getblocktemplate(const Config &config,
             "  \"bits\" : \"xxxxxxxx\",              (string) compressed "
             "target of next block\n"
             "  \"height\" : n                      (numeric) The height of the "
+            "  \"equihashn\" : n                   (numeric) Equihash N\n"
+            "  \"equihashk\" : n                   (numeric) Equihash K\n"
             "next block\n"
             "}\n"
 
@@ -722,9 +725,8 @@ static UniValue getblocktemplate(const Config &config,
 
     // pointer for convenience
     CBlock *pblock = &pblocktemplate->block;
-    const Consensus::Params &consensusParams =
-        config.GetChainParams().GetConsensus();
-
+    const CChainParams& params = config.GetChainParams();
+    const Consensus::Params& consensusParams = params.GetConsensus();
     // Update nTime
     UpdateTime(pblock, config, pindexPrev);
     pblock->nNonce = uint256();
@@ -871,7 +873,10 @@ static UniValue getblocktemplate(const Config &config,
     result.push_back(Pair("sizelimit", DEFAULT_MAX_BLOCK_SIZE));
     result.push_back(Pair("curtime", pblock->GetBlockTime()));
     result.push_back(Pair("bits", strprintf("%08x", pblock->nBits)));
-    result.push_back(Pair("height", (int64_t)(pindexPrev->nHeight + 1)));
+    int height = pindexPrev->nHeight + 1;
+    result.push_back(Pair("height", (int64_t)height));
+    result.push_back(Pair("equihashn", (int64_t)(params.EquihashN(height))));
+    result.push_back(Pair("equihashk", (int64_t)(params.EquihashK(height))));
 
     return result;
 }

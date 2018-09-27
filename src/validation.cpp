@@ -3310,10 +3310,21 @@ static bool CheckBlockHeader(const Config &config, const CBlockHeader &block,
     const Consensus::Params &consensusParams = Params().GetConsensus();
     bool postfork = block.nHeight >= (uint32_t)consensusParams.cdyHeight;
     
-    if (fCheckPOW && postfork && !CheckEquihashSolution(&block, Params())) {
-        LogPrintf("CheckBlockHeader(): Equihash solution invalid at height %d\n", block.nHeight);
-        return state.DoS(100, error("CheckBlockHeader(): Equihash solution invalid"),
-                         REJECT_INVALID, "invalid-solution");
+    if (fCheckPOW && postfork) {
+        const CChainParams& chainparams = Params();
+        const size_t sol_size = chainparams.EquihashSolutionWidth(block.nHeight);
+        if(block.nSolution.size() != sol_size) {
+           LogPrintf("CheckBlockHeader(): Equihash solution invalid at height %d\n", block.nHeight);
+            return state.DoS(
+                100, error("CheckBlockHeader(): Equihash solution has invalid size have %d need %d",
+                           block.nSolution.size(), sol_size),
+                REJECT_INVALID, "invalid-solution-size");
+        }
+        if (!CheckEquihashSolution(&block, Params())) {
+            LogPrintf("CheckBlockHeader(): Equihash solution invalid at height %d\n", block.nHeight);
+            return state.DoS(100, error("CheckBlockHeader(): Equihash solution invalid"),
+                            REJECT_INVALID, "invalid-solution");
+        }
     }
     
     if (fCheckPOW && !CheckProofOfWork(block.GetHash(), block.nBits, postfork, config)) {
