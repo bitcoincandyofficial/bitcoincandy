@@ -2919,6 +2919,19 @@ bool ActivateBestChain(const Config &config, CValidationState &state,
                     pindexMostWork == chainActive.Tip())
                     return true;
 
+                // limit_reorganization 
+                pindexFork = chainActive.FindFork(pindexMostWork);
+                if(chainActive.Height() - pindexFork->nHeight >= 5 ){
+                    // If block pass 6 confirmation, the block data is not changed by POW reorganization
+                    CBlockIndex *pindexFailed = pindexMostWork;
+                    while (pindexFailed && pindexFailed->nHeight >=chainActive.Height() && !chainActive.Contains(pindexFailed) )
+                    {
+                        setBlockIndexCandidates.erase(pindexFailed);
+                        pindexFailed = pindexFailed->pprev;
+                    };
+                    continue;
+                };
+
                 bool fInvalidFound = false;
                 std::shared_ptr<const CBlock> nullBlockPtr;
                 if (!ActivateBestChainStep(
