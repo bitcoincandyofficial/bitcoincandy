@@ -61,9 +61,32 @@ build process.
 
 ## Building for 64-bit Windows
 
-To build executables for Windows 64-bit, install the following dependencies:
+The first step is to install the mingw-w64 cross-compilation tool chain. Due to different Ubuntu
+packages for each distribution and problems with the Xenial packages the steps for each are different.
 
-    sudo apt-get install g++-mingw-w64-x86-64 mingw-w64-x86-64-dev
+Common steps to install mingw32 cross compiler tool chain:
+
+    sudo apt install g++-mingw-w64-x86-64
+
+Ubuntu Trusty 14.04:
+
+    No further steps required
+
+Ubuntu Xenial 16.04 and Windows Subsystem for Linux <sup>[1](#footnote1),[2](#footnote2)</sup>:
+
+    sudo apt install software-properties-common
+    sudo add-apt-repository "deb http://archive.ubuntu.com/ubuntu artful universe"
+    sudo apt update
+    sudo apt upgrade
+    sudo update-alternatives --config x86_64-w64-mingw32-g++ # Set the default mingw32 g++ compiler option to posix.
+
+Ubuntu Artful 17.10 <sup>[2](#footnote2)</sup>:
+
+    sudo update-alternatives --config x86_64-w64-mingw32-g++ # Set the default mingw32 g++ compiler option to posix.
+	
+Acquire the source in the usual way:
+
+    git clone https://github.com/bitcoincandyofficial/bitcoincandy.git
 
 Then build using:
 
@@ -71,7 +94,7 @@ Then build using:
     make HOST=x86_64-w64-mingw32
     cd ..
     ./autogen.sh # not required when building from tarball
-    CONFIG_SITE=$PWD/depends/x86_64-w64-mingw32/share/config.site ./configure --prefix=/
+    CONFIG_SITE=$PWD/depends/x86_64-w64-mingw32/share/config.site ./configure --prefix=/ --with-seeder=false
     make
 
 ## Building for 32-bit Windows
@@ -79,14 +102,22 @@ Then build using:
 To build executables for Windows 32-bit, install the following dependencies:
 
     sudo apt-get install g++-mingw-w64-i686 mingw-w64-i686-dev 
+	
+For Ubuntu Xenial 16.04, Ubuntu Artful 17.10 and Windows Subsystem for Linux <sup>[2](#footnote2)</sup>:
 
+	sudo update-alternatives --config i686-w64-mingw32-g++  # Set the default mingw32 g++ compiler option to posix.
+
+Acquire the source in the usual way:
+
+    git clone https://github.com/bitcoincandyofficial/bitcoincandy.git
+	
 Then build using:
 
     cd depends
     make HOST=i686-w64-mingw32
     cd ..
     ./autogen.sh # not required when building from tarball
-    CONFIG_SITE=$PWD/depends/i686-w64-mingw32/share/config.site ./configure --prefix=/
+    CONFIG_SITE=$PWD/depends/i686-w64-mingw32/share/config.site ./configure --prefix=/ --with-seeder=false
     make
 
 ## Depends system
