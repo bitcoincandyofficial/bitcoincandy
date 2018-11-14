@@ -2928,9 +2928,9 @@ bool ActivateBestChain(const Config &config, CValidationState &state,
                     {
                         setBlockIndexCandidates.erase(pindexFailed);
                         pindexFailed = pindexFailed->pprev;
-                    };
+                    }
                     continue;
-                };
+                }
 
                 bool fInvalidFound = false;
                 std::shared_ptr<const CBlock> nullBlockPtr;
