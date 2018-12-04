@@ -286,7 +286,13 @@ public:
                                   "4bd9f15ff20136191a5eec")},
                 // Nov, 13 DAA activation block.
                 {504031, uint256S("0x0000000000000000011ebf65b60d0a3de80b8175be"
-                                  "709d653b4c1a1beeb6ab9c")},
+                                  "709d653b4c1a1beeb6ab9c")},					  
+                // Hard fork for bitcoin candy
+                {512666, uint256S("0x00043bfba38c60e8b283d4e507e5785b8cd5f72b8b"
+                                  "72f66542b2e4c62bd2ed79")},
+                //roll back block for coin infaltion
+                {671663, uint256S("0x00000241636f7d345b239a2dd785b8e834b494de4d"
+                                  "307535d7afb7b1cb84a641")},
             }};
 
         // Data as of block
