@@ -678,9 +678,13 @@ static UniValue replayblock(const Config &config,
 
     bool fLimitFree = false;
     Amount nMaxRawTxFee = maxTxFee;
+    uint32_t nMissingInput = 0;
+    uint32_t nAlreadyInChain = 0;
+    uint32_t nOtherError = 0;
+	
     //skip coinbase transaction
     for (unsigned int i = 1; i < block.vtx.size(); i++) {
-    	CTransactionRef tx = block.vtx[i];
+        CTransactionRef tx = block.vtx[i];
         const uint256 &txid = tx->GetId();
         CCoinsViewCache &view = *pcoinsTip;
         bool fHaveChain = false;
@@ -697,22 +701,17 @@ static UniValue replayblock(const Config &config,
                                         fLimitFree, &fMissingInputs, false,
                                         nMaxRawTxFee)) {
                     if (state.IsInvalid()) {
-                        throw JSONRPCError(RPC_TRANSACTION_REJECTED,
-                                           strprintf("%i: %s", state.GetRejectCode(),
-                                                     state.GetRejectReason()));
+                        nOtherError++;
                     } else {
                         if (fMissingInputs) {
-                            throw JSONRPCError(RPC_TRANSACTION_ERROR, "Missing inputs");
-                        }
-
-                        throw JSONRPCError(RPC_TRANSACTION_ERROR,
-                                           state.GetRejectReason());
+                           nMissingInput++;
+                        } else
+                        nOtherError++;
                     }
                 }
             } else if (fHaveChain) {
-                throw JSONRPCError(RPC_TRANSACTION_ALREADY_IN_CHAIN,
-                                   "transaction already in block chain");
-            }
+                nAlreadyInChain++;
+           }
 
             if (!g_connman) {
                 throw JSONRPCError(
@@ -723,7 +722,11 @@ static UniValue replayblock(const Config &config,
             CInv inv(MSG_TX, txid);
             g_connman->ForEachNode([&inv](CNode *pnode) { pnode->PushInventory(inv); });
     }
-    return "Replay block done";
+    char result[200];
+    sprintf(result, "Replay block done, %d tx in total, %d missing inputs, %d already in chain, %d other error",
+            block.vtx.size()-1, nMissingInput, nAlreadyInChain, nOtherError);
+    return result;
+
 }
 
 
