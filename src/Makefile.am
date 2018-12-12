@@ -92,6 +92,7 @@ BITCOIN_CORE_H = \
   base58.h \
   bloom.h \
   blockencodings.h \
+  blockstatus.h \
   cashaddr.h \
   cashaddrenc.h \
   chain.h \

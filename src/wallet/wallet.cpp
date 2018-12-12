@@ -246,6 +246,10 @@ bool CWallet::LoadCryptedKey(const CPubKey &vchPubKey,
     return CCryptoKeyStore::AddCryptedKey(vchPubKey, vchCryptedSecret);
 }
 
+/**
+ * Update wallet first key creation time. This should be called whenever keys
+ * are added to the wallet, with the oldest key creation time.
+ */
 void CWallet::UpdateTimeFirstKey(int64_t nCreateTime) {
     AssertLockHeld(cs_wallet);
     if (nCreateTime <= 1) {
@@ -2071,6 +2075,7 @@ CWallet::ResendWalletTransactionsBefore(int64_t nTime, CConnman *connman) {
     std::vector<uint256> result;
 
     LOCK(cs_wallet);
+
     // Sort them in chronological order
     std::multimap<unsigned int, CWalletTx *> mapSorted;
     for (std::pair<const uint256, CWalletTx> &item : mapWallet) {
@@ -4144,8 +4149,7 @@ CWallet *CWallet::CreateWalletFromFile(const std::string walletFile) {
         // re-enable.
         if (fPruneMode) {
             CBlockIndex *block = chainActive.Tip();
-            while (block && block->pprev &&
-                   (block->pprev->nStatus & BLOCK_HAVE_DATA) &&
+            while (block && block->pprev && block->pprev->nStatus.hasData() &&
                    block->pprev->nTx > 0 && pindexRescan != block) {
                 block = block->pprev;
             }

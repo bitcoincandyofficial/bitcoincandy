@@ -296,7 +296,8 @@ static UniValue generatetoaddress(const Config &config,
         nMaxTries = request.params[2].get_int();
     }
 
-    CTxDestination destination = DecodeDestination(request.params[1].get_str());
+    CTxDestination destination = 
+            DecodeDestination(request.params[1].get_str());
     if (!IsValidDestination(destination)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
                            "Error: Invalid address");
@@ -577,22 +578,25 @@ static UniValue getblocktemplate(const Config &config,
         if (strMode == "proposal" || strMode == "proposal_legacy")
         {
             const UniValue &dataval = find_value(oparam, "data");
-            if (!dataval.isStr())
-                throw JSONRPCError(RPC_TYPE_ERROR, "Missing data String key for proposal");
-
+            if (!dataval.isStr()) {
+                throw JSONRPCError(RPC_TYPE_ERROR, 
+                                   "Missing data String key for proposal");
+            }
+            
             CBlock block;
             bool legacy_format = (strMode == "proposal_legacy");
-            if (!DecodeHexBlk(block, dataval.get_str(), legacy_format))
+            if (!DecodeHexBlk(block, dataval.get_str(), legacy_format)) {
                 throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block decode failed");
-
+            }
+            
             uint256 hash = block.GetHash();
             BlockMap::iterator mi = mapBlockIndex.find(hash);
             if (mi != mapBlockIndex.end()) {
                 CBlockIndex *pindex = mi->second;
-                if (pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
+                if (pindex->IsValid(BlockValidity::SCRIPTS)) {
                     return "duplicate";
                 }
-                if (pindex->nStatus & BLOCK_FAILED_MASK) {
+                if (pindex->nStatus.isInvalid()) {
                     return "duplicate-invalid";
                 }
                 return "duplicate-inconclusive";
@@ -944,10 +948,10 @@ static UniValue submitblock(const Config &config,
         BlockMap::iterator mi = mapBlockIndex.find(hash);
         if (mi != mapBlockIndex.end()) {
             CBlockIndex *pindex = mi->second;
-            if (pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
+            if (pindex->IsValid(BlockValidity::SCRIPTS)) {
                 return "duplicate";
             }
-            if (pindex->nStatus & BLOCK_FAILED_MASK) {
+            if (pindex->nStatus.isInvalid()) {
                 return "duplicate-invalid";
             }
             // Otherwise, we might only have the header - process the block

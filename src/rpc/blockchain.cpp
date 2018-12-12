@@ -805,20 +805,25 @@ UniValue getblock(const Config &config, const JSONRPCRequest &request) {
     if (request.fHelp || request.params.size() < 1 ||
         request.params.size() > 3) {
         throw std::runtime_error(
-            "getblock \"blockhash\" ( verbose legacy )\n"
-            "\nIf verbose is false, returns a string that is serialized, "
-            "hex-encoded data for block 'hash'.\n"
-            "If verbose is true, returns an Object with information about "
-            "block <hash>.\n"
+            "getblock \"blockhash\" ( verbosity )\n"
+            "\nIf verbosity is 0 or false, returns a string that is "
+            "serialized, hex-encoded data for block 'hash'.\n"
+            "If verbosity is 1 or true, returns an Object with information "
+            "about block <hash>.\n"
+            "If verbosity is 2, returns an Object with information about block "
+            "<hash> and information about each transaction.\n"
             "\nArguments:\n"
             "1. \"blockhash\"          (string, required) The block hash\n"
-            "2. \"verbosity\"          (numeric, optional, default=1) 0 for hex encoded data, 1 for a json object, and 2 for json object with transaction data\n"
+            "2. verbosity             (numeric, optional, default=1) 0 for "
+            "hex-encoded data, 1 for a json object, and 2 for json object with "
+            "transaction data\n"
             "3. \"legacy\"             (boolean, optional, default=false) indicates if the block should be in legacy format\n"
             "\nResult (for verbosity = 0):\n"
-            "\"data\"             (string) A string that is serialized, hex-encoded data for block 'hash'.\n"
+            "\"data\"                   (string) A string that is serialized, "
+            "hex-encoded data for block 'hash'.\n"
             "\nResult (for verbosity = 1):\n"
             "{\n"
-            "  \"hash\" : \"hash\",     (string) the block hash (same as "
+            "  \"hash\" : \"hash\",       (string) The block hash (same as "
             "provided)\n"
             "  \"confirmations\" : n,   (numeric) The number of confirmations, "
             "or -1 if the block is not on the main chain\n"
@@ -837,7 +842,7 @@ UniValue getblock(const Config &config, const JSONRPCRequest &request) {
             "  \"mediantime\" : ttt,    (numeric) The median block time in "
             "seconds since epoch (Jan 1 1970 GMT)\n"
             "  \"nonce\" : n,           (numeric) The nonce\n"
-            "  \"bits\" : \"1d00ffff\", (string) The bits\n"
+            "  \"bits\" : \"1d00ffff\",   (string) The bits\n"
             "  \"difficulty\" : x.xxx,  (numeric) The difficulty\n"
             "  \"chainwork\" : \"xxxx\",  (string) Expected number of hashes "
             "required to produce the chain up to this block (in hex)\n"
@@ -873,14 +878,17 @@ UniValue getblock(const Config &config, const JSONRPCRequest &request) {
         legacy_format = true;
     }
 
-    if (mapBlockIndex.count(hash) == 0)
+    if (mapBlockIndex.count(hash) == 0) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+    }
 
     CBlock block;
     CBlockIndex *pblockindex = mapBlockIndex[hash];
 
-    if (fHavePruned && !(pblockindex->nStatus & BLOCK_HAVE_DATA) && pblockindex->nTx > 0)
+    if (fHavePruned && !pblockindex->nStatus.hasData() &&
+        pblockindex->nTx > 0) {
         throw JSONRPCError(RPC_MISC_ERROR, "Block not available (pruned data)");
+    }
 
     if (!ReadBlockFromDisk(block, pblockindex, config)) {
         // Block not found on disk. This could be because we have the block
@@ -892,7 +900,8 @@ UniValue getblock(const Config &config, const JSONRPCRequest &request) {
 
     if (verbosity <= 0) {
         int ser_flags = legacy_format ? SERIALIZE_BLOCK_LEGACY : 0;
-        CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION | ser_flags | RPCSerializationFlags());
+        CDataStream ssBlock(SER_NETWORK, 
+                            PROTOCOL_VERSION | ser_flags | RPCSerializationFlags());
         ssBlock << block;
         std::string strHex = HexStr(ssBlock.begin(), ssBlock.end());
         return strHex;
@@ -1089,10 +1098,12 @@ UniValue gettxout(const Config &config, const JSONRPCRequest &request) {
             "gettxout \"txid\" n ( include_mempool )\n"
             "\nReturns details about an unspent transaction output.\n"
             "\nArguments:\n"
-            "1. \"txid\"       (string, required) The transaction id\n"
-            "2. n              (numeric, required) vout number\n"
-            "3. include_mempool  (boolean, optional) Whether to include the "
-            "mempool\n"
+            "1. \"txid\"             (string, required) The transaction id\n"
+            "2. \"n\"                (numeric, required) vout number\n"
+            "3. \"include_mempool\"  (boolean, optional) Whether to include "
+            "the mempool. Default: true."
+            "     Note that an unspent output that is spent in the mempool "
+            "won't appear.\n"
             "\nResult:\n"
             "{\n"
             "  \"bestblock\" : \"hash\",    (string) the block hash\n"
@@ -1375,8 +1386,7 @@ UniValue getblockchaininfo(const Config &config,
 
     if (fPruneMode) {
         CBlockIndex *block = chainActive.Tip();
-        while (block && block->pprev &&
-               (block->pprev->nStatus & BLOCK_HAVE_DATA)) {
+        while (block && block->pprev && block->pprev->nStatus.hasData()) {
             block = block->pprev;
         }
 
@@ -1425,13 +1435,15 @@ UniValue getchaintips(const Config &config, const JSONRPCRequest &request) {
             "Possible values for status:\n"
             "1.  \"invalid\"               This branch contains at least one "
             "invalid block\n"
-            "2.  \"headers-only\"          Not all blocks for this branch are "
+            "2.  \"parked\"                This branch contains at least one "
+            "parked block\n"
+            "3.  \"headers-only\"          Not all blocks for this branch are "
             "available, but the headers are valid\n"
-            "3.  \"valid-headers\"         All blocks are available for this "
+            "4.  \"valid-headers\"         All blocks are available for this "
             "branch, but they were never fully validated\n"
-            "4.  \"valid-fork\"            This branch is not part of the "
+            "5.  \"valid-fork\"            This branch is not part of the "
             "active chain, but is fully validated\n"
-            "5.  \"active\"                This is the tip of the active main "
+            "6.  \"active\"                This is the tip of the active main "
             "chain, which is certainly valid\n"
             "\nExamples:\n" +
             HelpExampleCli("getchaintips", "") +
@@ -1486,19 +1498,22 @@ UniValue getchaintips(const Config &config, const JSONRPCRequest &request) {
         if (chainActive.Contains(block)) {
             // This block is part of the currently active chain.
             status = "active";
-        } else if (block->nStatus & BLOCK_FAILED_MASK) {
+        } else if (block->nStatus.isInvalid()) {
             // This block or one of its ancestors is invalid.
             status = "invalid";
+        } else if (block->nStatus.isOnParkedChain()) {
+            // This block or one of its ancestors is parked.
+            status = "parked";
         } else if (block->nChainTx == 0) {
             // This block cannot be connected because full block data for it or
             // one of its parents is missing.
             status = "headers-only";
-        } else if (block->IsValid(BLOCK_VALID_SCRIPTS)) {
+        } else if (block->IsValid(BlockValidity::SCRIPTS)) {
             // This block is fully validated, but no longer part of the active
             // chain. It was probably the active block once, but was
             // reorganized.
             status = "valid-fork";
-        } else if (block->IsValid(BLOCK_VALID_TREE)) {
+        } else if (block->IsValid(BlockValidity::TREE)) {
             // The headers for this block are valid, but it has not been
             // validated. It was probably never part of the most-work chain.
             status = "valid-headers";
@@ -1594,6 +1609,46 @@ UniValue preciousblock(const Config &config, const JSONRPCRequest &request) {
     return NullUniValue;
 }
 
+UniValue finalizeblock(const Config &config, const JSONRPCRequest &request) {
+    if (request.fHelp || request.params.size() != 1) {
+        throw std::runtime_error(
+            "finalizeblock \"blockhash\"\n"
+
+            "\nTreats a block as final. It cannot be reorged. Any chain\n"
+            "that does not contain this block is invalid. Used on a less\n"
+            "work chain, it can effectively PUTS YOU OUT OF CONSENSUS.\n"
+            "USE WITH CAUTION!\n"
+            "\nResult:\n"
+            "\nExamples:\n" +
+            HelpExampleCli("finalizeblock", "\"blockhash\"") +
+            HelpExampleRpc("finalizeblock", "\"blockhash\""));
+    }
+
+    std::string strHash = request.params[0].get_str();
+    uint256 hash(uint256S(strHash));
+    CValidationState state;
+
+    {
+        LOCK(cs_main);
+        if (mapBlockIndex.count(hash) == 0) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+        }
+
+        CBlockIndex *pblockindex = mapBlockIndex[hash];
+        FinalizeBlockAndInvalidate(config, state, pblockindex);
+    }
+
+    if (state.IsValid()) {
+        ActivateBestChain(config, state);
+    }
+
+    if (!state.IsValid()) {
+        throw JSONRPCError(RPC_DATABASE_ERROR, state.GetRejectReason());
+    }
+
+    return NullUniValue;
+}
+
 UniValue invalidateblock(const Config &config, const JSONRPCRequest &request) {
     if (request.fHelp || request.params.size() != 1) {
         throw std::runtime_error(
@@ -1609,8 +1664,8 @@ UniValue invalidateblock(const Config &config, const JSONRPCRequest &request) {
             HelpExampleRpc("invalidateblock", "\"blockhash\""));
     }
 
-    std::string strHash = request.params[0].get_str();
-    uint256 hash(uint256S(strHash));
+    const std::string strHash = request.params[0].get_str();
+    const uint256 hash(uint256S(strHash));
     CValidationState state;
 
     {
@@ -1621,6 +1676,44 @@ UniValue invalidateblock(const Config &config, const JSONRPCRequest &request) {
 
         CBlockIndex *pblockindex = mapBlockIndex[hash];
         InvalidateBlock(config, state, pblockindex);
+    }
+
+    if (state.IsValid()) {
+        ActivateBestChain(config, state);
+    }
+
+    if (!state.IsValid()) {
+        throw JSONRPCError(RPC_DATABASE_ERROR, state.GetRejectReason());
+    }
+
+    return NullUniValue;
+}
+
+UniValue parkblock(const Config &config, const JSONRPCRequest &request) {
+    if (request.fHelp || request.params.size() != 1) {
+        throw std::runtime_error("parkblock \"blockhash\"\n"
+                                 "\nMarks a block as parked.\n"
+                                 "\nArguments:\n"
+                                 "1. \"blockhash\"   (string, required) the "
+                                 "hash of the block to park\n"
+                                 "\nResult:\n"
+                                 "\nExamples:\n" +
+                                 HelpExampleCli("parkblock", "\"blockhash\"") +
+                                 HelpExampleRpc("parkblock", "\"blockhash\""));
+    }
+
+    const std::string strHash = request.params[0].get_str();
+    const uint256 hash(uint256S(strHash));
+    CValidationState state;
+
+    {
+        LOCK(cs_main);
+        if (mapBlockIndex.count(hash) == 0) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+        }
+
+        CBlockIndex *pblockindex = mapBlockIndex[hash];
+        ParkBlock(config, state, pblockindex);
     }
 
     if (state.IsValid()) {
@@ -1650,8 +1743,8 @@ UniValue reconsiderblock(const Config &config, const JSONRPCRequest &request) {
             HelpExampleRpc("reconsiderblock", "\"blockhash\""));
     }
 
-    std::string strHash = request.params[0].get_str();
-    uint256 hash(uint256S(strHash));
+    const std::string strHash = request.params[0].get_str();
+    const uint256 hash(uint256S(strHash));
 
     {
         LOCK(cs_main);
@@ -1671,6 +1764,145 @@ UniValue reconsiderblock(const Config &config, const JSONRPCRequest &request) {
     }
 
     return NullUniValue;
+}
+
+UniValue unparkblock(const Config &config, const JSONRPCRequest &request) {
+    if (request.fHelp || request.params.size() != 1) {
+        throw std::runtime_error(
+            "unparkblock \"blockhash\"\n"
+            "\nRemoves parked status of a block and its descendants, "
+            "reconsider them for activation.\n"
+            "This can be used to undo the effects of parkblock.\n"
+            "\nArguments:\n"
+            "1. \"blockhash\"   (string, required) the hash of the block to "
+            "unpark\n"
+            "\nResult:\n"
+            "\nExamples:\n" +
+            HelpExampleCli("unparkblock", "\"blockhash\"") +
+            HelpExampleRpc("unparkblock", "\"blockhash\""));
+    }
+
+    const std::string strHash = request.params[0].get_str();
+    const uint256 hash(uint256S(strHash));
+
+    {
+        LOCK(cs_main);
+        if (mapBlockIndex.count(hash) == 0) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+        }
+
+        CBlockIndex *pblockindex = mapBlockIndex[hash];
+        UnparkBlockAndChildren(pblockindex);
+    }
+
+    CValidationState state;
+    ActivateBestChain(config, state);
+
+    if (!state.IsValid()) {
+        throw JSONRPCError(RPC_DATABASE_ERROR, state.GetRejectReason());
+    }
+
+    return NullUniValue;
+}
+
+UniValue getchaintxstats(const Config &config, const JSONRPCRequest &request) {
+    if (request.fHelp || request.params.size() > 2) {
+        throw std::runtime_error(
+            "getchaintxstats ( nblocks blockhash )\n"
+            "\nCompute statistics about the total number and rate of "
+            "transactions in the chain.\n"
+            "\nArguments:\n"
+            "1. nblocks      (numeric, optional) Size of the window in number "
+            "of blocks (default: one month).\n"
+            "2. \"blockhash\"  (string, optional) The hash of the block that "
+            "ends the window.\n"
+            "\nResult:\n"
+            "{\n"
+            "  \"time\": xxxxx,                (numeric) The timestamp for the "
+            "final block in the window in UNIX format.\n"
+            "  \"txcount\": xxxxx,             (numeric) The total number of "
+            "transactions in the chain up to that point.\n"
+            "  \"window_block_count\": xxxxx,  (numeric) Size of the window in "
+            "number of blocks.\n"
+            "  \"window_tx_count\": xxxxx,     (numeric) The number of "
+            "transactions in the window. Only returned if "
+            "\"window_block_count\" is > 0.\n"
+            "  \"window_interval\": xxxxx,     (numeric) The elapsed time in "
+            "the window in seconds. Only returned if \"window_block_count\" is "
+            "> 0.\n"
+            "  \"txrate\": x.xx,               (numeric) The average rate of "
+            "transactions per second in the window. Only returned if "
+            "\"window_interval\" is > 0.\n"
+            "}\n"
+            "\nExamples:\n" +
+            HelpExampleCli("getchaintxstats", "") +
+            HelpExampleRpc("getchaintxstats", "2016"));
+    }
+
+    const CBlockIndex *pindex;
+
+    // By default: 1 month
+    int blockcount = 30 * 24 * 60 * 60 /
+                     config.GetChainParams().GetConsensus().nPowTargetSpacing;
+
+    bool havehash = !request.params[1].isNull();
+    uint256 hash;
+    if (havehash) {
+        hash = uint256S(request.params[1].get_str());
+    }
+
+    {
+        LOCK(cs_main);
+        if (havehash) {
+            auto it = mapBlockIndex.find(hash);
+            if (it == mapBlockIndex.end()) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                                   "Block not found");
+            }
+            pindex = it->second;
+            if (!chainActive.Contains(pindex)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                   "Block is not in main chain");
+            }
+        } else {
+            pindex = chainActive.Tip();
+        }
+    }
+
+    assert(pindex != nullptr);
+
+    if (request.params[0].isNull()) {
+        blockcount = std::max(0, std::min(blockcount, pindex->nHeight - 1));
+    } else {
+        blockcount = request.params[0].get_int();
+
+        if (blockcount < 0 ||
+            (blockcount > 0 && blockcount >= pindex->nHeight)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid block count: "
+                                                      "should be between 0 and "
+                                                      "the block's height - 1");
+        }
+    }
+
+    const CBlockIndex *pindexPast =
+        pindex->GetAncestor(pindex->nHeight - blockcount);
+    int nTimeDiff =
+        pindex->GetMedianTimePast() - pindexPast->GetMedianTimePast();
+    int nTxDiff = pindex->nChainTx - pindexPast->nChainTx;
+
+    UniValue ret(UniValue::VOBJ);
+    ret.pushKV("time", int64_t(pindex->nTime));
+    ret.pushKV("txcount", int64_t(pindex->nChainTx));
+    ret.pushKV("window_block_count", blockcount);
+    if (blockcount > 0) {
+        ret.pushKV("window_tx_count", nTxDiff);
+        ret.pushKV("window_interval", nTimeDiff);
+        if (nTimeDiff > 0) {
+            ret.pushKV("txrate", double(nTxDiff) / nTimeDiff);
+        }
+    }
+
+    return ret;
 }
 
 // clang-format off
@@ -1702,6 +1934,9 @@ static const CRPCCommand commands[] = {
     { "hidden",             "waitfornewblock",        waitfornewblock,        true,  {"timeout"} },
     { "hidden",             "waitforblock",           waitforblock,           true,  {"blockhash","timeout"} },
     { "hidden",             "waitforblockheight",     waitforblockheight,     true,  {"height","timeout"} },
+    { "hidden",             "finalizeblock",          finalizeblock,          true,  {"blockhash"} },
+    { "hidden",             "parkblock",              parkblock,              true,  {"blockhash"} },
+    { "hidden",             "unparkblock",            unparkblock,            true,  {"blockhash"} },
 };
 // clang-format on
 

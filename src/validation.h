@@ -63,8 +63,9 @@ static const Amount DEFAULT_UTXO_FEE(0);
 static const Amount DEFAULT_TRANSACTION_MAXFEE(COIN / 10);
 //! Discourage users to set fees higher than this amount (in satoshis) per kB
 static const Amount HIGH_TX_FEE_PER_KB(COIN / 100);
-/** -maxtxfee will warn if called with a higher fee than this amount (in
- * satoshis */
+/**
+ * -maxtxfee will warn if called with a higher fee than this amount (in satoshis
+ */
 static const Amount HIGH_MAX_TX_FEE(100 * HIGH_TX_FEE_PER_KB);
 /** Default for -limitancestorcount, max number of in-mempool ancestors */
 static const unsigned int DEFAULT_ANCESTOR_LIMIT = 25;
@@ -90,28 +91,37 @@ static const unsigned int UNDOFILE_CHUNK_SIZE = 0x100000; // 1 MiB
 static const int MAX_SCRIPTCHECK_THREADS = 16;
 /** -par default (number of script-checking threads, 0 = auto) */
 static const int DEFAULT_SCRIPTCHECK_THREADS = 0;
-/** Number of blocks that can be requested at any given time from a single peer.
+/**
+ * Number of blocks that can be requested at any given time from a single peer.
  */
 static const int MAX_BLOCKS_IN_TRANSIT_PER_PEER = 16;
-/** Timeout in seconds during which a peer must stall block download progress
- * before being disconnected. */
+/**
+ * Timeout in seconds during which a peer must stall block download progress
+ * before being disconnected.
+ */
 static const unsigned int BLOCK_STALLING_TIMEOUT = 2;
-/** Number of headers sent in one getheaders result. We rely on the assumption
- * that if a peer sends
- *  less than this number, we reached its tip. Changing this value is a protocol
- * upgrade. */
+/**
+ * Number of headers sent in one getheaders result. We rely on the assumption
+ * that if a peer sends less than this number, we reached its tip. Changing this
+ * value is a protocol upgrade.
+ */
 static const unsigned int MAX_HEADERS_RESULTS = 2000;
-/** Maximum depth of blocks we're willing to serve as compact blocks to peers
- *  when requested. For older blocks, a regular BLOCK response will be sent. */
+/**
+ * Maximum depth of blocks we're willing to serve as compact blocks to peers
+ * when requested. For older blocks, a regular BLOCK response will be sent.
+ */
 static const int MAX_CMPCTBLOCK_DEPTH = 5;
-/** Maximum depth of blocks we're willing to respond to GETBLOCKTXN requests
- * for. */
+/**
+ * Maximum depth of blocks we're willing to respond to GETBLOCKTXN requests for.
+ */
 static const int MAX_BLOCKTXN_DEPTH = 10;
-/** Size of the "block download window": how far ahead of our current height do
+/**
+ * Size of the "block download window": how far ahead of our current height do
  * we fetch ? Larger windows tolerate larger download speed differences between
  * peer, but increase the potential degree of disordering of blocks on disk
  * (which make reindexing and in the future perhaps pruning harder). We'll
- * probably want to make this a per-peer adaptive value at some point. */
+ * probably want to make this a per-peer adaptive value at some point.
+ */
 static const unsigned int BLOCK_DOWNLOAD_WINDOW = 1024;
 /** Time to wait (in seconds) between writing blocks/block index to disk. */
 static const unsigned int DATABASE_WRITE_INTERVAL = 60 * 60;
@@ -123,12 +133,16 @@ static const unsigned int MAX_REJECT_MESSAGE_LENGTH = 111;
 static const unsigned int AVG_LOCAL_ADDRESS_BROADCAST_INTERVAL = 24 * 24 * 60;
 /** Average delay between peer address broadcasts in seconds. */
 static const unsigned int AVG_ADDRESS_BROADCAST_INTERVAL = 30;
-/** Average delay between trickled inventory transmissions in seconds.
- *  Blocks and whitelisted receivers bypass this, outbound peers get half this
- * delay. */
+/**
+ * Average delay between trickled inventory transmissions in seconds.
+ * Blocks and whitelisted receivers bypass this, outbound peers get half this
+ * delay.
+ */
 static const unsigned int INVENTORY_BROADCAST_INTERVAL = 5;
-/** Maximum number of inventory items to send per transmission.
- *  Limits the impact of low-fee transaction floods. */
+/**
+ * Maximum number of inventory items to send per transmission.
+ * Limits the impact of low-fee transaction floods.
+ */
 static const unsigned int INVENTORY_BROADCAST_MAX =
     7 * INVENTORY_BROADCAST_INTERVAL;
 /** Average delay between feefilter broadcasts in seconds. */
@@ -138,15 +152,18 @@ static const unsigned int MAX_FEEFILTER_CHANGE_DELAY = 5 * 60;
 /** Block download timeout base, expressed in millionths of the block interval
  * (i.e. 10 min) */
 static const int64_t BLOCK_DOWNLOAD_TIMEOUT_BASE = 1000000;
-/** Additional block download timeout per parallel downloading peer (i.e. 5 min)
+/**
+ * Additional block download timeout per parallel downloading peer (i.e. 5 min)
  */
 static const int64_t BLOCK_DOWNLOAD_TIMEOUT_PER_PEER = 500000;
 
 static const unsigned int DEFAULT_LIMITFREERELAY = 0;
 static const bool DEFAULT_RELAYPRIORITY = true;
 static const int64_t DEFAULT_MAX_TIP_AGE = 24 * 60 * 60;
-/** Maximum age of our tip in seconds for us to be considered current for fee
- * estimation */
+/**
+ * Maximum age of our tip in seconds for us to be considered current for fee
+ * estimation.
+ */
 static const int64_t MAX_FEE_ESTIMATION_TIP_AGE = 3 * 60 * 60;
 
 /** Default for -permitbaremultisig */
@@ -158,14 +175,21 @@ static const unsigned int DEFAULT_BANSCORE_THRESHOLD = 100;
 /** Default for using fee filter */
 static const bool DEFAULT_FEEFILTER = true;
 
-/** Maximum number of headers to announce when relaying blocks with headers
- * message.*/
+/**
+ * Maximum number of headers to announce when relaying blocks with headers
+ * message.
+ */
 static const unsigned int MAX_BLOCKS_TO_ANNOUNCE = 8;
 
 /** Maximum number of unconnecting headers announcements before DoS score */
 static const int MAX_UNCONNECTING_HEADERS = 10;
 
 static const bool DEFAULT_PEERBLOOMFILTERS = true;
+
+/** Default for -stopatheight */
+static const int DEFAULT_STOPATHEIGHT = 0;
+/** Default for -maxreorgdepth */
+static const int DEFAULT_MAX_REORG_DEPTH = 10;
 
 extern CScript COINBASE_FLAGS;
 extern CCriticalSection cs_main;
@@ -185,25 +209,36 @@ extern bool fCheckBlockIndex;
 extern bool fCheckpointsEnabled;
 extern size_t nCoinCacheUsage;
 
-/** A fee rate smaller than this is considered zero fee (for relaying, mining
- * and transaction creation) */
+/** 
+ * A fee rate smaller than this is considered zero fee (for relaying, mining
+ * and transaction creation) 
+ */
 extern CFeeRate minRelayTxFee;
-/** Absolute maximum transaction fee (in satoshis) used by wallet and mempool
- * (rejects high fee in sendrawtransaction) */
+/**
+ * Absolute maximum transaction fee (in satoshis) used by wallet and mempool
+ * (rejects high fee in sendrawtransaction)
+ */
 extern Amount maxTxFee;
-/** If the tip is older than this (in seconds), the node is considered to be in
- * initial block download. */
+/**
+ * If the tip is older than this (in seconds), the node is considered to be in
+ * initial block download.
+ */
 extern int64_t nMaxTipAge;
 
-/** Block hash whose ancestors we will assume to have valid scripts without
- * checking them. */
+/**
+ * Block hash whose ancestors we will assume to have valid scripts without
+ * checking them.
+ */
 extern uint256 hashAssumeValid;
 
-/** Default for -stopatheight */
-static const int DEFAULT_STOPATHEIGHT = 0;
+/**
+ * Minimum work we will assume exists on some valid chain.
+ */
+extern arith_uint256 nMinimumChainWork;
 
-/** Best header we've seen so far (used for getheaders queries' starting
- * points). */
+/**
+ * Best header we've seen so far (used for getheaders queries' starting points).
+ */
 extern CBlockIndex *pindexBestHeader;
 
 /** Minimum disk space required - used in CheckDiskSpace() */
@@ -223,16 +258,18 @@ static const unsigned int MIN_BLOCKS_TO_KEEP = 288;
 static const signed int DEFAULT_CHECKBLOCKS = 6;
 static const unsigned int DEFAULT_CHECKLEVEL = 3;
 
-// Require that user allocate at least 550MB for block & undo files (blk???.dat
-// and rev???.dat)
-// At 1MB per block, 288 blocks = 288MB.
-// Add 15% for Undo data = 331MB
-// Add 20% for Orphan block rate = 397MB
-// We want the low water mark after pruning to be at least 397 MB and since we
-// prune in full block file chunks, we need the high water mark which triggers
-// the prune to be one 128MB block file + added 15% undo data = 147MB greater
-// for a total of 545MB. Setting the target to > than 550MB will make it likely
-// we can respect the target.
+/**
+ * Require that user allocate at least 550MB for block & undo files (blk???.dat
+ * and rev???.dat)
+ * At 1MB per block, 288 blocks = 288MB.
+ * Add 15% for Undo data = 331MB
+ * Add 20% for Orphan block rate = 397MB
+ * We want the low water mark after pruning to be at least 397 MB and since we
+ * prune in full block file chunks, we need the high water mark which triggers
+ * the prune to be one 128MB block file + added 15% undo data = 147MB greater
+ * for a total of 545MB. Setting the target to > than 550MB will make it likely
+ * we can respect the target.
+ */
 static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
 
 /**
@@ -249,6 +286,7 @@ static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
  *
  * Call without cs_main held.
  *
+ * @param[in]   config  The global config.
  * @param[in]   pblock  The block we want to process.
  * @param[in]   fForceProcessing Process this block even if unrequested; used
  * for non-network block sources and whitelisted peers.
@@ -265,12 +303,13 @@ bool ProcessNewBlock(const Config &config,
  *
  * Call without cs_main held.
  *
- * @param[in]  block The block headers themselves
- * @param[out] state This may be set to an Error state if any error occurred
- * processing them
- * @param[in]  chainparams The params for the chain we want to connect to
- * @param[out] ppindex If set, the pointer will be set to point to the last new
- * block index object for the given headers
+ * @param[in]  config        The config.
+ * @param[in]  block         The block headers themselves.
+ * @param[out] state         This may be set to an Error state if any error
+ *                           occurred processing them.
+ * @param[out] ppindex       If set, the pointer will be set to point to the
+ *                           last new block index object for the given headers.
+ * @return True if block headers were accepted as valid.
  */
 bool ProcessNewBlockHeaders(const Config &config,
                             const std::vector<CBlockHeader> &block,
@@ -620,16 +659,40 @@ public:
 CBlockIndex *FindForkInGlobalIndex(const CChain &chain,
                                    const CBlockLocator &locator);
 
-/** Mark a block as precious and reorganize. */
+/**
+ * Treats a block as if it were received before others with the same work,
+ * making it the active chain tip if applicable. Successive calls to
+ * PreciousBlock() will override the effects of earlier calls. The effects of
+ * calls to PreciousBlock() are not retained across restarts.
+ *
+ * Returns true if the provided block index successfully became the chain tip.
+ */
 bool PreciousBlock(const Config &config, CValidationState &state,
                    CBlockIndex *pindex);
+
+/**
+ * Mark a block as finalized.
+ * A finalized block can not be reorged in any way.
+ */
+bool FinalizeBlockAndInvalidate(const Config &config, CValidationState &state,
+                                CBlockIndex *pindex);
 
 /** Mark a block as invalid. */
 bool InvalidateBlock(const Config &config, CValidationState &state,
                      CBlockIndex *pindex);
 
+/** Park a block. */
+bool ParkBlock(const Config &config, CValidationState &state,
+               CBlockIndex *pindex);
+
 /** Remove invalidity status from a block and its descendants. */
 bool ResetBlockFailureFlags(CBlockIndex *pindex);
+
+/** Remove parked status from a block and its descendants. */
+bool UnparkBlockAndChildren(CBlockIndex *pindex);
+
+/** Remove parked status from a block. */
+bool UnparkBlock(CBlockIndex *pindex);
 
 /** The currently-connected chain of blocks (protected by cs_main). */
 extern CChain chainActive;
@@ -659,9 +722,9 @@ int32_t ComputeBlockVersion(const CBlockIndex *pindexPrev,
                             const Consensus::Params &params);
 
 /**
- * Reject codes greater or equal to this can be returned by AcceptToMemPool for
- * transactions, to signal internal conditions. They cannot and should not be
- * sent over the P2P network.
+ * Reject codes greater or equal to this can be returned by AcceptToMemPool or
+ * AcceptBlock for blocks/transactions, to signal internal conditions. They
+ * cannot and should not be sent over the P2P network.
  */
 static const unsigned int REJECT_INTERNAL = 0x100;
 /** Too high fee. Can not be triggered by P2P transactions */
@@ -670,6 +733,8 @@ static const unsigned int REJECT_HIGHFEE = 0x100;
 static const unsigned int REJECT_ALREADY_KNOWN = 0x101;
 /** Transaction conflicts with a transaction already known */
 static const unsigned int REJECT_CONFLICT = 0x102;
+/** Block conflicts with a transaction already known */
+static const unsigned int REJECT_AGAINST_FINALIZED = 0x103;
 
 /** Get block file info entry for one block file */
 CBlockFileInfo *GetBlockFileInfo(size_t n);
