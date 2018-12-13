@@ -291,8 +291,8 @@ static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
  * @param[in]   fForceProcessing Process this block even if unrequested; used
  * for non-network block sources and whitelisted peers.
  * @param[out]  fNewBlock A boolean which is set to indicate if the block was
- * first received via this call
- * @return True if state.IsValid()
+ *                        first received via this call.
+ * @return True if the block is accepted as a valid block.
  */
 bool ProcessNewBlock(const Config &config,
                      const std::shared_ptr<const CBlock> pblock,
@@ -316,30 +316,53 @@ bool ProcessNewBlockHeaders(const Config &config,
                             CValidationState &state,
                             const CBlockIndex **ppindex = nullptr);
 
-/** Check whether enough disk space is available for an incoming block */
+/**
+ * Check whether enough disk space is available for an incoming block.
+ */
 bool CheckDiskSpace(uint64_t nAdditionalBytes = 0);
-/** Open a block file (blk?????.dat) */
+
+/**
+ * Open a block file (blk?????.dat).
+ */
 FILE *OpenBlockFile(const CDiskBlockPos &pos, bool fReadOnly = false);
-/** Open an undo file (rev?????.dat) */
+/** 
+ * Open an undo file (rev?????.dat) 
+ */
 FILE *OpenUndoFile(const CDiskBlockPos &pos, bool fReadOnly = false);
-/** Translation to a filesystem path */
+/** 
+ * Translation to a filesystem path 
+ */
 boost::filesystem::path GetBlockPosFilename(const CDiskBlockPos &pos,
                                             const char *prefix);
 /** Import blocks from an external file */
 bool LoadExternalBlockFile(const Config &config, FILE *fileIn,
                            CDiskBlockPos *dbp = nullptr);
-/** Initialize a new block tree database + block data on disk */
+/** 
+ * Initialize a new block tree database + block data on disk 
+ */
 bool InitBlockIndex(const Config &config);
-/** Load the block tree and coins database from disk */
+/** 
+ * Load the block tree and coins database from disk 
+ */
 bool LoadBlockIndex(const CChainParams &chainparams);
-/** Unload database information */
+/** 
+ * Unload database information 
+ */
 void UnloadBlockIndex();
-/** Run an instance of the script checking thread */
+
+/**
+ * Run an instance of the script checking thread.
+ */
 void ThreadScriptCheck();
-/** Check whether we are doing an initial block download (synchronizing from
- * disk or network) */
+
+/**
+ * Check whether we are doing an initial block download (synchronizing from disk
+ * or network)
+ */
 bool IsInitialBlockDownload();
-/** Format a string that describes several potential problems detected by the
+
+/**
+ * Format a string that describes several potential problems detected by the
  * core.
  * strFor can have three values:
  * - "rpc": get critical warnings, which should put the client in safe mode if
@@ -350,18 +373,30 @@ bool IsInitialBlockDownload();
  * by strFor.
  */
 std::string GetWarnings(const std::string &strFor);
-/** Retrieve a transaction (from memory pool, or from disk, if possible) */
+/** 
+ * Retrieve a transaction (from memory pool, or from disk, if possible) 
+ */
 bool GetTransaction(const Config &config, const uint256 &hash,
                     CTransactionRef &tx, uint256 &hashBlock,
                     bool fAllowSlow = false);
-/** Find the best known block, and make it the tip of the block chain */
+/** 
+ * Find the best known block, and make it the active tip of the block chain.
+ * If it fails, the tip is not updated.
+ *
+ * pblock is either nullptr or a pointer to a block that is already loaded
+ * in memory (to avoid loading it from disk again).
+ *
+ * Returns true if a new chain tip was set.
+ */
 bool ActivateBestChain(
     const Config &config, CValidationState &state,
     std::shared_ptr<const CBlock> pblock = std::shared_ptr<const CBlock>());
 Amount GetBlockSubsidy(int nHeight, const Consensus::Params &consensusParams);
 
-/** Guess verification progress (as a fraction between 0.0=genesis and
- * 1.0=current tip). */
+/** 
+ * Guess verification progress (as a fraction between 0.0=genesis and
+ * 1.0=current tip). 
+ */
 double GuessVerificationProgress(const ChainTxData &data, CBlockIndex *pindex);
 
 /**
@@ -394,7 +429,7 @@ void FindFilesToPrune(std::set<int> &setFilesToPrune,
 void PruneOneBlockFile(const int fileNumber);
 
 /**
- *  Actually unlink the specified files
+ * Actually unlink the specified files
  */
 void UnlinkPrunedFiles(const std::set<int> &setFilesToPrune);
 
@@ -481,11 +516,14 @@ uint64_t GetTransactionSigOpCount(const CTransaction &tx,
  */
 bool CheckInputs(const CTransaction &tx, CValidationState &state,
                  const CCoinsViewCache &view, bool fScriptChecks,
-                 uint32_t flags, bool sigCacheStore, bool scriptCacheStore,
+                 const uint32_t flags, bool sigCacheStore,
+                 bool scriptCacheStore,
                  const PrecomputedTransactionData &txdata,
                  std::vector<CScriptCheck> *pvChecks = nullptr);
 
-/** Apply the effects of this transaction on the UTXO set represented by view */
+/** 
+ * Apply the effects of this transaction on the UTXO set represented by view 
+ */
 void UpdateCoins(const CTransaction &tx, CCoinsViewCache &inputs, int nHeight);
 void UpdateCoins(const CTransaction &tx, CCoinsViewCache &inputs,
                  CTxUndo &txundo, int nHeight);

@@ -3,6 +3,7 @@ Bitcoin Candy version 0.18.1 is now available from:
   <https://cdy.one>
 
 This release includes the following features and fixes:
+ - Add parkblock/unparkblock RPC commands and "parked" state to getchiantips RPC
  - Add the finalized block concept. Finalized blocks cannot be reorged, which protects the network against deep reorgs.
  - Add the `-maxreorgdepth` configuration to configure at what depth block are considered final. Default is 10. Use -1 to disable.
  - Introduce `finalizeblock` RPC to finalize a block at the will of the node operator.
