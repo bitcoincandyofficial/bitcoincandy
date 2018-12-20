@@ -178,6 +178,10 @@ public:
 
         consensus.CDYZawyLWMAHeight = 573123;   
 
+        /** Height to publish compensing coins*/
+        consensus.nCompenseHeight = 702000;
+        consensus.sCompenseAddress = "CSZnk6KoMoEwHmveF3KcyRfEWsZfZ3dgEU";
+        
         consensus.BitcoinPostforkBlock = uint256S("0000000000000000007b746068bd08ba4089f97636690e9dc758774e7db21f17");	// 512666 block hash
         consensus.BitcoinPostforkTime = 1515799972;
 
@@ -379,7 +383,9 @@ public:
         consensus.nNewRuleHeight = 201651;
         consensus.CDYEquihashForkHeight = 201671;
         
-        consensus.CDYZawyLWMAHeight = 201641; 
+        consensus.nCompenseHeight = 202000;
+        consensus.sCompenseAddress = "CSZnk6KoMoEwHmveF3KcyRfEWsZfZ3dgEU";
+        
         consensus.BitcoinPostforkBlock = uint256S("00000000d16d6c2aecc7436eea0c54a53741fee9abf265606aa465d6fd3f3d8a"); // block 201601
         consensus.BitcoinPostforkTime = 1393815074;
 
@@ -530,6 +536,8 @@ public:
         consensus.nNewRuleHeight = 201836;
         consensus.CDYEquihashForkHeight = 201876;
 
+        consensus.nCompenseHeight = 202000; 
+        consensus.sCompenseAddress = "CSZnk6KoMoEwHmveF3KcyRfEWsZfZ3dgEU";
         // Nov, 13 hard fork is always on on regtest.
         consensus.daaHeight = 2250;
          
