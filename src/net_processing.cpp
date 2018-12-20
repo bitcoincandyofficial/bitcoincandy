@@ -8,6 +8,7 @@
 #include "addrman.h"
 #include "arith_uint256.h"
 #include "blockencodings.h"
+#include "blockstatus.h"
 #include "chainparams.h"
 #include "config.h"
 #include "consensus/validation.h"
@@ -53,6 +54,7 @@ struct COrphanTx {
     NodeId fromPeer;
     int64_t nTimeExpire;
 };
+
 std::map<uint256, COrphanTx> mapOrphanTransactions GUARDED_BY(cs_main);
 std::map<COutPoint,
          std::set<std::map<uint256, COrphanTx>::iterator, IteratorComparator>>
@@ -386,8 +388,8 @@ bool MarkBlockAsReceived(const uint256 &hash) {
 
 // Requires cs_main.
 // returns false, still setting pit, if the block was already in flight from the
-// same peer pit will only be valid as long as the same cs_main lock is being
-// held.
+// same peer
+// pit will only be valid as long as the same cs_main lock is being held.
 static bool
 MarkBlockAsInFlight(const Config &config, NodeId nodeid, const uint256 &hash,
                     const Consensus::Params &consensusParams,
@@ -402,7 +404,9 @@ MarkBlockAsInFlight(const Config &config, NodeId nodeid, const uint256 &hash,
         itInFlight = mapBlocksInFlight.find(hash);
     if (itInFlight != mapBlocksInFlight.end() &&
         itInFlight->second.first == nodeid) {
+        if (pit) {
         *pit = &itInFlight->second.second;
+        }
         return false;
     }
 
@@ -476,7 +480,14 @@ void UpdateBlockAvailability(NodeId nodeid, const uint256 &hash) {
     }
 }
 
-void MaybeSetPeerAsAnnouncingHeaderAndIDs(NodeId nodeid, CConnman &connman) {
+/**
+ * When a peer sends us a valid block, instruct it to announce blocks to us
+ * using CMPCTBLOCK if possible by adding its nodeid to the end of
+ * lNodesAnnouncingHeaderAndIDs, and keeping that list under a certain size by
+ * removing the first element if necessary.
+ */
+static void MaybeSetPeerAsAnnouncingHeaderAndIDs(NodeId nodeid,
+                                                 CConnman &connman) {
     AssertLockHeld(cs_main);
     CNodeState *nodestate = State(nodeid);
     if (!nodestate) {
@@ -529,7 +540,8 @@ bool CanDirectFetch(const Consensus::Params &consensusParams) {
     if (fCDYBootstrapping && consensusParams.BitcoinPostforkTime > 0) {
         target_time = consensusParams.BitcoinPostforkTime;
     }
-    return chainActive.Tip()->GetBlockTime() > target_time - consensusParams.nPowTargetSpacing * 20;
+    return chainActive.Tip()->GetBlockTime() > 
+            target_time - consensusParams.nPowTargetSpacing * 20;
 }
 
 // Requires cs_main
@@ -546,30 +558,10 @@ bool PeerHasHeader(CNodeState *state, const CBlockIndex *pindex) {
 }
 
 /**
- * Find the last common ancestor two blocks have.
- * Both pa and pb must be non null.
+ * Update pindexLastCommonBlock and add not-in-flight missing successors to
+ * vBlocks, until it has at most count entries.
  */
-const CBlockIndex *LastCommonAncestor(const CBlockIndex *pa,
-                                      const CBlockIndex *pb) {
-    if (pa->nHeight > pb->nHeight) {
-        pa = pa->GetAncestor(pb->nHeight);
-    } else if (pb->nHeight > pa->nHeight) {
-        pb = pb->GetAncestor(pa->nHeight);
-    }
-
-    while (pa != pb && pa && pb) {
-        pa = pa->pprev;
-        pb = pb->pprev;
-    }
-
-    // Eventually all chain branches meet at the genesis block.
-    assert(pa == pb);
-    return pa;
-}
-
-/** Update pindexLastCommonBlock and add not-in-flight missing successors to
- * vBlocks, until it has at most count entries. */
-void FindNextBlocksToDownload(NodeId nodeid, unsigned int count,
+static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count,
                               std::vector<const CBlockIndex *> &vBlocks,
                               NodeId &nodeStaller,
                               const Consensus::Params &consensusParams) {
@@ -586,7 +578,8 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count,
 
     if (state->pindexBestKnownBlock == nullptr ||
         state->pindexBestKnownBlock->nChainWork <
-            chainActive.Tip()->nChainWork) {
+            chainActive.Tip()->nChainWork ||
+        state->pindexBestKnownBlock->nChainWork < nMinimumChainWork) {
         // This peer has nothing interesting.
         return;
     }
@@ -638,13 +631,12 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count,
         // are already downloaded, or if it's already part of our chain (and
         // therefore don't need it even if pruned).
         for (const CBlockIndex *pindex : vToFetch) {
-            if (!pindex->IsValid(BLOCK_VALID_TREE)) {
+            if (!pindex->IsValid(BlockValidity::TREE)) {
                 // We consider the chain that this peer is on invalid.
                 LogPrintf("%s: Invalid block at height %d(%s)\n", __func__, pindex->nHeight, pindex->phashBlock->ToString());
                 return;
             }
-            if (pindex->nStatus & BLOCK_HAVE_DATA ||
-                chainActive.Contains(pindex)) {
+            if (pindex->nStatus.hasData() || chainActive.Contains(pindex)) {
                 if (pindex->nChainTx) {
                     state->pindexLastCommonBlock = pindex;
                 }
@@ -1164,8 +1156,8 @@ static void ProcessGetData(const Config &config, CNode *pfrom,
                 BlockMap::iterator mi = mapBlockIndex.find(inv.hash);
                 if (mi != mapBlockIndex.end()) {
                     if (mi->second->nChainTx &&
-                        !mi->second->IsValid(BLOCK_VALID_SCRIPTS) &&
-                        mi->second->IsValid(BLOCK_VALID_TREE)) {
+                        !mi->second->IsValid(BlockValidity::SCRIPTS) &&
+                        mi->second->IsValid(BlockValidity::TREE)) {
                         // If we have the block and all of its parents, but have
                         // not yet validated it, we might be in the middle of
                         // connecting it (ie in the unlock of cs_main before
@@ -1189,7 +1181,7 @@ static void ProcessGetData(const Config &config, CNode *pfrom,
                         // more than a month older (both in time, and in best
                         // equivalent proof of work) than the best header chain
                         // we know about.
-                        send = mi->second->IsValid(BLOCK_VALID_SCRIPTS) &&
+                        send = mi->second->IsValid(BlockValidity::SCRIPTS) &&
                                (pindexBestHeader != nullptr) &&
                                (pindexBestHeader->GetBlockTime() -
                                     mi->second->GetBlockTime() <
@@ -1229,7 +1221,7 @@ static void ProcessGetData(const Config &config, CNode *pfrom,
                 }
                 // Pruned nodes may have deleted the block, so check whether
                 // it's available before trying to send.
-                if (send && (mi->second->nStatus & BLOCK_HAVE_DATA)) {
+                if (send && (mi->second->nStatus.hasData())) {
                     // Send block from disk
                     CBlock block;
                     if (!ReadBlockFromDisk(block, (*mi).second, config)) {
@@ -1689,6 +1681,7 @@ static bool ProcessMessage(const Config &config, CNode *pfrom,
     else if (strCommand == NetMsgType::ADDR) {
         std::vector<CAddress> vAddr;
         vRecv >> vAddr;
+
         // Don't want addr from older versions unless seeding
         if (pfrom->nVersion < CADDR_TIME_VERSION &&
             connman.GetAddressCount() > 1000) {
@@ -1790,9 +1783,7 @@ static bool ProcessMessage(const Config &config, CNode *pfrom,
 
         std::vector<CInv> vToFetch;
 
-        for (size_t nInv = 0; nInv < vInv.size(); nInv++) {
-            CInv &inv = vInv[nInv];
-
+        for (CInv &inv : vInv) {
             if (interruptMsgProc) {
                 return true;
             }
@@ -1921,7 +1912,7 @@ static bool ProcessMessage(const Config &config, CNode *pfrom,
                 MIN_BLOCKS_TO_KEEP -
                 3600 / chainparams.GetConsensus().nPowTargetSpacing;
             if (fPruneMode &&
-                (!(pindex->nStatus & BLOCK_HAVE_DATA) ||
+                (!pindex->nStatus.hasData() ||
                  pindex->nHeight <=
                      chainActive.Tip()->nHeight - nPrunedBlocksLikelyToHave)) {
                 LogPrint(
@@ -1962,8 +1953,7 @@ static bool ProcessMessage(const Config &config, CNode *pfrom,
         LOCK(cs_main);
 
         BlockMap::iterator it = mapBlockIndex.find(req.blockhash);
-        if (it == mapBlockIndex.end() ||
-            !(it->second->nStatus & BLOCK_HAVE_DATA)) {
+        if (it == mapBlockIndex.end() || !it->second->nStatus.hasData()) {
             LogPrintf("Peer %d sent us a getblocktxn for a block we don't have",
                       pfrom->id);
             return true;
@@ -2335,7 +2325,7 @@ static bool ProcessMessage(const Config &config, CNode *pfrom,
                     mapBlocksInFlight.find(pindex->GetBlockHash());
             bool fAlreadyInFlight = blockInFlightIt != mapBlocksInFlight.end();
 
-            if (pindex->nStatus & BLOCK_HAVE_DATA) {
+            if (pindex->nStatus.hasData()) {
                 // Nothing to do here
                 return true;
             }
@@ -2510,7 +2500,7 @@ static bool ProcessMessage(const Config &config, CNode *pfrom,
 
             // hold cs_main for CBlockIndex::IsValid()
             LOCK(cs_main);
-            if (pindex->IsValid(BLOCK_VALID_TRANSACTIONS)) {
+            if (pindex->IsValid(BlockValidity::TRANSACTIONS)) {
                 // Clear download state for this block, which is in process from
                 // some other peer. We do this after calling. ProcessNewBlock so
                 // that a malleated cmpctblock announcement can't be used to
@@ -2760,7 +2750,7 @@ static bool ProcessMessage(const Config &config, CNode *pfrom,
             bool fCanDirectFetch = CanDirectFetch(chainparams.GetConsensus());
             // If this set of headers is valid and ends in a block with at least
             // as much work as our tip, download as much as possible.
-            if (fCanDirectFetch && pindexLast->IsValid(BLOCK_VALID_TREE) &&
+            if (fCanDirectFetch && pindexLast->IsValid(BlockValidity::TREE) &&
                 chainActive.Tip()->nChainWork <= pindexLast->nChainWork) {
                 std::vector<const CBlockIndex *> vToFetch;
                 const CBlockIndex *pindexWalk = pindexLast;
@@ -2768,7 +2758,7 @@ static bool ProcessMessage(const Config &config, CNode *pfrom,
                 // up to a limit.
                 while (pindexWalk && !chainActive.Contains(pindexWalk) &&
                        vToFetch.size() <= MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
-                    if (!(pindexWalk->nStatus & BLOCK_HAVE_DATA) &&
+                    if (!(pindexWalk->nStatus.hasData()) &&
                         !mapBlocksInFlight.count(pindexWalk->GetBlockHash())) {
                         // We don't have this block, and it's not yet in flight.
                         vToFetch.push_back(pindexWalk);
@@ -2815,7 +2805,7 @@ static bool ProcessMessage(const Config &config, CNode *pfrom,
                         if (nodestate->fSupportsDesiredCmpctVersion &&
                             vGetData.size() == 1 &&
                             mapBlocksInFlight.size() == 1 &&
-                            pindexLast->pprev->IsValid(BLOCK_VALID_CHAIN)) {
+                            pindexLast->pprev->IsValid(BlockValidity::CHAIN)) {
                             // In any case, we want to download using a compact
                             // block, not a regular one.
                             vGetData[0] =

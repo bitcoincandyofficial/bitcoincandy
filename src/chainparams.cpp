@@ -134,7 +134,6 @@ public:
         consensus.nPowTargetTimespanLegacy = 14 * 24 * 60 * 60;
         consensus.nPowTargetSpacing = 10 * 60;
         
-        //Yang
         consensus.nPowTargetSpacingCDY = 2 * 60; 
         
         consensus.fPowAllowMinDifficultyBlocks = false;
@@ -150,7 +149,6 @@ public:
         // December 31, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout =
             1230767999;
-
         // Deployment of BIP68, BIP112, and BIP113.
         consensus.vDeployments[Consensus::DEPLOYMENT_CSV].bit = 0;
         // May 1st, 2016
@@ -158,11 +156,9 @@ public:
             1462060800;
         // May 1st, 2017
         consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nTimeout = 1493596800;
-
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork =
             uint256S("0x00000000000000000000000000000000000000000082d89e5b8963ba7d734c61");
-
         // By default assume that the signatures in ancestors of this block are
         // valid.
         consensus.defaultAssumeValid = uint256S("0x000000000000000003d0f45045742bb557f1a6c633cdb9de53564eb7ec4459d0"); // block hash 512665
@@ -180,9 +176,7 @@ public:
         consensus.nNewRuleHeight = 592447;
         consensus.CDYEquihashForkHeight = 656960; // Around 09/01/2018
 
-
-        consensus.CDYZawyLWMAHeight = 573123;
-        
+        consensus.CDYZawyLWMAHeight = 573123;   
 
         consensus.BitcoinPostforkBlock = uint256S("0000000000000000007b746068bd08ba4089f97636690e9dc758774e7db21f17");	// 512666 block hash
         consensus.BitcoinPostforkTime = 1515799972;
@@ -207,7 +201,7 @@ public:
 
         // use different default
         nDefaultPort = 8367;
-		nBitcoinDefaultPort = 8333;
+	nBitcoinDefaultPort = 8333;
         nPruneAfterHeight = 100000;
         const size_t N = 200, K = 9;
         const size_t N2 = 144, K2 = 5;
@@ -410,7 +404,7 @@ public:
 
         // use different default
         nDefaultPort = 18367;
-	    nBitcoinDefaultPort = 18333;
+	nBitcoinDefaultPort = 18333;
         nPruneAfterHeight = 1000;
         const size_t N = 200, K = 9;
         const size_t N2 = 144, K2 = 5;
