@@ -178,7 +178,7 @@ public:
         consensus.CDYEquihashForkHeight = 656960; // Around 09/01/2018
  
         /** Height to publish compensing coins*/
-        consensus.nCompenseHeight = 702000;
+        consensus.nCompenseHeight = 706000;
         consensus.sCompenseAddress = "CSZnk6KoMoEwHmveF3KcyRfEWsZfZ3dgEU";
         
         consensus.BitcoinPostforkBlock = uint256S("0000000000000000007b746068bd08ba4089f97636690e9dc758774e7db21f17");	// 512666 block hash
