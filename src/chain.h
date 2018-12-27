@@ -302,7 +302,7 @@ public:
 
     //! Check whether this block index entry is valid up to the passed validity
     //! level.
-        bool IsValid(enum BlockValidity nUpTo = BlockValidity::TRANSACTIONS) const {
+    bool IsValid(enum BlockValidity nUpTo = BlockValidity::TRANSACTIONS) const {
         return nStatus.isValid(nUpTo);
     }
 

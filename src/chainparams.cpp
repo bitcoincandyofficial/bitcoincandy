@@ -173,11 +173,10 @@ public:
         consensus.cdyHeight = 512666;
 
         //  hard fork
+        consensus.CDYZawyLWMAHeight = 573123;  
         consensus.nNewRuleHeight = 592447;
         consensus.CDYEquihashForkHeight = 656960; // Around 09/01/2018
-
-        consensus.CDYZawyLWMAHeight = 573123;   
-
+ 
         /** Height to publish compensing coins*/
         consensus.nCompenseHeight = 702000;
         consensus.sCompenseAddress = "CSZnk6KoMoEwHmveF3KcyRfEWsZfZ3dgEU";
@@ -379,12 +378,12 @@ public:
         
         //  hard fork-----add by hmc
         consensus.cdyHeight = 201601;
-
+        consensus.CDYZawyLWMAHeight = 201641;
         consensus.nNewRuleHeight = 201651;
         consensus.CDYEquihashForkHeight = 201671;
-        
-        consensus.nCompenseHeight = 202000;
-        consensus.sCompenseAddress = "CSZnk6KoMoEwHmveF3KcyRfEWsZfZ3dgEU";
+
+        consensus.nCompenseHeight = 202136;
+        consensus.sCompenseAddress = "mhZBATdK8nghjJ6S8F7DSEvDc1pz47bgzP";
         
         consensus.BitcoinPostforkBlock = uint256S("00000000d16d6c2aecc7436eea0c54a53741fee9abf265606aa465d6fd3f3d8a"); // block 201601
         consensus.BitcoinPostforkTime = 1393815074;
