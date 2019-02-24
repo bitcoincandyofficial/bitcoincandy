@@ -112,8 +112,10 @@ typedef int64_t CAmount;
 static const Amount COIN(100000000);
 static const Amount CENT(1000000);
 
-static const CAmount COIN_MULTIPLE = 1000;  // CDY * 1000
-static const CAmount COIN_DECIMAL_COUNT = 5;  // CDY 5 decimals
+//static const CAmount COIN_MULTIPLE = 1000;  // CDY * 1000
+//static const CAmount COIN_DECIMAL_COUNT = 5;  // CDY 5 decimals
+static const CAmount COIN_MULTIPLE = 1;  // SGRPT (sugarpoint)
+static const CAmount COIN_DECIMAL_COUNT = 8;  // SGRPT 8 decimals
 
 extern const std::string CURRENCY_UNIT;
 

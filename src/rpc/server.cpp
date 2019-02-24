@@ -129,7 +129,17 @@ UniValue ValueFromAmount(const Amount &amount) {
     int64_t n_abs = (sign ? -amt : amt);
     int64_t quotient = n_abs / (COIN.GetSatoshis() / COIN_MULTIPLE);
     int64_t remainder = n_abs % (COIN.GetSatoshis() / COIN_MULTIPLE);
-    return UniValue(UniValue::VNUM, strprintf("%s%d.%05d", sign ? "-" : "",
+    return UniValue(UniValue::VNUM, strprintf("%s%d.%08d", sign ? "-" : "",
+                                              quotient, remainder));
+}
+
+UniValue ValueFromCAmount(const CAmount &amount) {
+    int64_t amt = amount;
+    bool sign = amt < 0;
+    int64_t n_abs = (sign ? -amt : amt);
+    int64_t quotient = n_abs / (COIN.GetSatoshis() / COIN_MULTIPLE);
+    int64_t remainder = n_abs % (COIN.GetSatoshis() / COIN_MULTIPLE);
+    return UniValue(UniValue::VNUM, strprintf("%s%d.%08d", sign ? "-" : "",
                                               quotient, remainder));
 }
 

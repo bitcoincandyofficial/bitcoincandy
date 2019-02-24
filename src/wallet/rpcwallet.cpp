@@ -1227,7 +1227,8 @@ static UniValue sendmany(const Config &config, const JSONRPCRequest &request) {
         destinations.insert(dest);
 
         CScript scriptPubKey = GetScriptForDestination(dest);
-        Amount nAmount = AmountFromValue(sendTo[name_]);
+        Amount nAmount = AmountFromValue(sendTo[name_]); //todd_check
+        //nAmount = nAmount / COIN_MULTIPLE; //todd_check 
         if (nAmount <= Amount(0)) {
             throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for send");
         }

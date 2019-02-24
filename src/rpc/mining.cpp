@@ -1006,8 +1006,9 @@ UniValue getblocksubsidy(const Config &config, const JSONRPCRequest& request)
   UniValue result(UniValue::VOBJ);
 
   CAmount nReward = GetBlockSubsidy(nHeight, config.GetChainParams().GetConsensus()).GetSatoshis();
+  CAmount nFounders = nReward-nReward;
   result.push_back(Pair("miner", nReward));
-  result.push_back(Pair("founders", 0));
+  result.push_back(Pair("founders", nFounders));
 
   return result;
 }

@@ -10,7 +10,7 @@
 const std::string CURRENCY_UNIT = "CDY";
 
 std::string Amount::ToString() const {
-    return strprintf("%d.%05d %s", amount / (COIN.GetSatoshis() / COIN_MULTIPLE),
+    return strprintf("%d.%08d %s", amount / (COIN.GetSatoshis() / COIN_MULTIPLE),
                      amount % (COIN.GetSatoshis() / COIN_MULTIPLE), CURRENCY_UNIT);
 }
 
@@ -45,6 +45,6 @@ Amount CFeeRate::GetFee(size_t nBytes_) const {
 
 std::string CFeeRate::ToString() const {
     return strprintf(
-        "%d.%05d %s/kB", nSatoshisPerK.GetSatoshis() / (COIN.GetSatoshis() / COIN_MULTIPLE),
+        "%d.%08d %s/kB", nSatoshisPerK.GetSatoshis() / (COIN.GetSatoshis() / COIN_MULTIPLE),
         nSatoshisPerK.GetSatoshis() % (COIN.GetSatoshis() / COIN_MULTIPLE), CURRENCY_UNIT);
 }
