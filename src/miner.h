@@ -8,7 +8,6 @@
 
 #include "primitives/block.h"
 #include "txmempool.h"
-#include "dstencode.h"
 
 #include "boost/multi_index/ordered_index.hpp"
 #include "boost/multi_index_container.hpp"

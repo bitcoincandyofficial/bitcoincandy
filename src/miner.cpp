@@ -170,15 +170,6 @@ BlockAssembler::CreateNewBlock(const CScript &scriptPubKeyIn) {
     LOCK2(cs_main, mempool.cs);
     CBlockIndex *pindexPrev = chainActive.Tip();
     nHeight = pindexPrev->nHeight + 1;
-
-    bool fCompense = false;
-    CScript scriptPubKeyCompense;
-    if (nHeight == chainparams.GetConsensus().nCompenseHeight) {
-        fCompense = true;
-        const std::string sCompenseMiner = chainparams.GetConsensus().sCompenseAddress;//
-        CTxDestination destination = DecodeDestination(sCompenseMiner);
-        scriptPubKeyCompense = GetScriptForDestination(destination);
-    }
     
     pblock->nVersion =
         ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
@@ -211,7 +202,7 @@ BlockAssembler::CreateNewBlock(const CScript &scriptPubKeyIn) {
     coinbaseTx.vin.resize(1);
     coinbaseTx.vin[0].prevout.SetNull();
     coinbaseTx.vout.resize(1);
-    coinbaseTx.vout[0].scriptPubKey = fCompense? scriptPubKeyCompense:scriptPubKeyIn;
+    coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
     coinbaseTx.vout[0].nValue =
         nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
