@@ -1233,7 +1233,7 @@ Amount GetBlockSubsidy(int nHeight, const Consensus::Params &consensusParams) {
     }
     
     if (nHeight == consensusParams.nCompenseHeight) {
-        return 300000 * COIN;
+        return 1000000 * COIN;
     }
     // Force block reward to zero when right shift is undefined. 
     if (halvings >= 61) return Amount(0);  //change it from 64 to 61
