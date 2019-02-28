@@ -170,7 +170,7 @@ BlockAssembler::CreateNewBlock(const CScript &scriptPubKeyIn) {
     LOCK2(cs_main, mempool.cs);
     CBlockIndex *pindexPrev = chainActive.Tip();
     nHeight = pindexPrev->nHeight + 1;
-
+    
     pblock->nVersion =
         ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
     // -regtest only: allow overriding block.nVersion with
