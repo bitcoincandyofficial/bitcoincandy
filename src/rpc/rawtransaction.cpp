@@ -647,6 +647,94 @@ static UniValue decoderawtransaction(const Config &config,
     return result;
 }
 
+
+static UniValue replayblock(const Config &config,
+                            const JSONRPCRequest &request) {
+    if (request.fHelp || request.params.size() != 1) {
+        throw std::runtime_error(
+            "replayblock \"hexstring\"\n"
+            "\nReturn replay tx result.\n"
+            "\nArguments:\n"
+            "1. \"hexstring\"      (string, required) The block hex "
+            "string\n"
+
+            "\nResult:\n"
+            "{\n"
+            "}\n"
+            "\nExamples:\n" +
+            HelpExampleCli("decoderawtransaction", "\"blockhexstring\"") +
+            HelpExampleRpc("decoderawtransaction", "\"blockhexstring\""));
+    }
+
+    LOCK(cs_main);
+    RPCTypeCheck(request.params, {UniValue::VSTR});
+
+    std::shared_ptr<CBlock> blockptr = std::make_shared<CBlock>();
+    CBlock &block = *blockptr;
+    bool legacy_format = false;
+    if (!DecodeHexBlk(block, request.params[0].get_str(), legacy_format)) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block decode failed");
+    }
+
+    if (block.vtx.empty() || !block.vtx[0]->IsCoinBase()) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                           "Block does not start with a coinbase");
+    }
+
+    bool fLimitFree = false;
+    Amount nMaxRawTxFee = maxTxFee;
+    uint32_t nMissingInput = 0;
+    uint32_t nAlreadyInChain = 0;
+    uint32_t nOtherError = 0;
+	
+    //skip coinbase transaction
+    for (unsigned int i = 1; i < block.vtx.size(); i++) {
+        CTransactionRef tx = block.vtx[i];
+        const uint256 &txid = tx->GetId();
+        CCoinsViewCache &view = *pcoinsTip;
+        bool fHaveChain = false;
+        for (size_t o = 0; !fHaveChain && o < tx->vout.size(); o++) {
+            const Coin &existingCoin = view.AccessCoin(COutPoint(txid, o));
+            fHaveChain = !existingCoin.IsSpent();
+        }
+        bool fHaveMempool = mempool.exists(txid);
+            if (!fHaveMempool && !fHaveChain) {
+                // Push to local node and sync with wallets.
+                CValidationState state;
+                bool fMissingInputs;
+                if (!AcceptToMemoryPool(config, mempool, state, std::move(tx),
+                                        fLimitFree, &fMissingInputs, false,
+                                        nMaxRawTxFee)) {
+                    if (state.IsInvalid()) {
+                        nOtherError++;
+                    } else {
+                        if (fMissingInputs) {
+                           nMissingInput++;
+                        } else
+                        nOtherError++;
+                    }
+                }
+            } else if (fHaveChain) {
+                nAlreadyInChain++;
+           }
+
+            if (!g_connman) {
+                throw JSONRPCError(
+                    RPC_CLIENT_P2P_DISABLED,
+                    "Error: Peer-to-peer functionality missing or disabled");
+            }
+
+            CInv inv(MSG_TX, txid);
+            g_connman->ForEachNode([&inv](CNode *pnode) { pnode->PushInventory(inv); });
+    }
+    char result[200];
+    sprintf(result, "Replay block done, %d tx in total, %d missing inputs, %d already in chain, %d other error",
+            block.vtx.size()-1, nMissingInput, nAlreadyInChain, nOtherError);
+    return result;
+
+}
+
+
 static UniValue decodescript(const Config &config,
                              const JSONRPCRequest &request) {
     if (request.fHelp || request.params.size() != 1) {
@@ -1278,6 +1366,7 @@ static const CRPCCommand commands[] = {
     { "rawtransactions",    "sendrawtransaction",     sendrawtransaction,     false, {"hexstring","allowhighfees"} },
     { "rawtransactions",    "combinerawtransaction",  combinerawtransaction,  false, {"txs"} },
     { "rawtransactions",    "signrawtransaction",     signrawtransaction,     false, {"hexstring","prevtxs","privkeys","sighashtype"} }, /* uses wallet if enabled */
+    { "rawtransactions",    "replayblock",            replayblock,            true,  {"hexstring"}},
 
     { "blockchain",         "gettxoutproof",          gettxoutproof,          true,  {"txids", "blockhash"} },
     { "blockchain",         "verifytxoutproof",       verifytxoutproof,       true,  {"proof"} },

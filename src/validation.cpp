@@ -40,6 +40,7 @@
 #include "validationinterface.h"
 #include "versionbits.h"
 #include "warnings.h"
+#include "dstencode.h"
 
 #include <atomic>
 #include <sstream>
@@ -1227,9 +1228,13 @@ Amount GetBlockSubsidy(int nHeight, const Consensus::Params &consensusParams) {
     else halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
 
 
-    if (nHeight == consensusParams.cdyHeight)
+    if (nHeight == consensusParams.cdyHeight) {
 		return 210000 * COIN;// * COIN_SCALE;
+    }
     
+    if (nHeight == consensusParams.nCompenseHeight) {
+        return 1000000 * COIN;
+    }
     // Force block reward to zero when right shift is undefined. 
     if (halvings >= 61) return Amount(0);  //change it from 64 to 61
 
@@ -2210,6 +2215,18 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
                          REJECT_INVALID, "bad-cb-amount");
     }
 
+    if (block.nHeight == chainparams.GetConsensus().nCompenseHeight) {
+        CScript scriptPubKeyCompense;
+        const std::string sCompenseAddress = chainparams.GetConsensus().sCompenseAddress;
+        CTxDestination destination = DecodeDestination(sCompenseAddress);
+        scriptPubKeyCompense = GetScriptForDestination(destination);
+        if (block.vtx[0]->vout.size()!= 1 || 
+            block.vtx[0]->vout[0].scriptPubKey != scriptPubKeyCompense) {
+        return state.DoS(100, false, REJECT_INVALID, "blk-bad-scriptPubKey", false,
+                         "not the expected scriptPubKey at compense height");
+        }
+    }
+    
     if (!control.Wait()) {
         return state.DoS(100, false, REJECT_INVALID, "blk-bad-inputs", false,
                          "parallel script check failed");
