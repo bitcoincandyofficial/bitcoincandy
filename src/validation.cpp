@@ -2215,18 +2215,30 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
                          REJECT_INVALID, "bad-cb-amount");
     }
 
-    if (block.nHeight == chainparams.GetConsensus().nCompenseHeight) {
-        CScript scriptPubKeyCompense;
-        const std::string sCompenseAddress = chainparams.GetConsensus().sCompenseAddress;
-        CTxDestination destination = DecodeDestination(sCompenseAddress);
-        scriptPubKeyCompense = GetScriptForDestination(destination);
-        if (block.vtx[0]->vout.size()!= 1 || 
-            block.vtx[0]->vout[0].scriptPubKey != scriptPubKeyCompense) {
-        return state.DoS(100, false, REJECT_INVALID, "blk-bad-scriptPubKey", false,
-                         "not the expected scriptPubKey at compense height");
+    Amount minimumReward = blockReward * 0.8;
+    uint32_t nPoolSize = chainparams.GetConsensus().PoolAddresses.size();
+    if(nPoolSize > 0) {
+        std::string PoolAddress;
+        CTxDestination destination;
+        CScript PoolScript;
+        for(size_t i = 0; i < nPoolSize; i++)
+        {
+            PoolAddress = chainparams.GetConsensus().PoolAddresses.pop_back();
+            destination = DecodeDestination(PoolAddress);
+            PoolScript = GetScriptForDestination(PoolAddress);
+            if (block.vtx[0]->vout[0].nValue < minimumReward  || 
+                block.vtx[0]->vout[0].scriptPubKey != PoolScript) {
+                return state.DoS(100, false, REJECT_INVALID, "blk-bad-scriptPubKey", false,
+                "invalidate coinbase transaction");
+            }
         }
     }
-    
+
+
+
+
+
+
     if (!control.Wait()) {
         return state.DoS(100, false, REJECT_INVALID, "blk-bad-inputs", false,
                          "parallel script check failed");
