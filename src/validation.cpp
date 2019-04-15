@@ -2215,7 +2215,7 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
                          REJECT_INVALID, "bad-cb-amount");
     }
 
-    Amount minimumReward = blockReward * 0.8;
+    Amount minimumReward = blockReward/2;
     uint32_t nPoolSize = chainparams.GetConsensus().PoolAddresses.size();
     if(nPoolSize > 0) {
         std::string PoolAddress;
@@ -2223,9 +2223,9 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
         CScript PoolScript;
         for(size_t i = 0; i < nPoolSize; i++)
         {
-            PoolAddress = chainparams.GetConsensus().PoolAddresses.pop_back();
+            PoolAddress = chainparams.GetConsensus().PoolAddresses[i];
             destination = DecodeDestination(PoolAddress);
-            PoolScript = GetScriptForDestination(PoolAddress);
+            PoolScript = GetScriptForDestination(destination);
             if (block.vtx[0]->vout[0].nValue < minimumReward  || 
                 block.vtx[0]->vout[0].scriptPubKey != PoolScript) {
                 return state.DoS(100, false, REJECT_INVALID, "blk-bad-scriptPubKey", false,
@@ -2233,9 +2233,6 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
             }
         }
     }
-
-
-
 
 
 
