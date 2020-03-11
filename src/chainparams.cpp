@@ -180,8 +180,11 @@ public:
         /** Height to publish compensing coins*/
         consensus.nCompenseHeight = 758000;
         
-        consensus.PoolAddresses.push_back("CVbtt8dqZKG4xzG7C1oGzEd1G66eoDn2ee");
-        
+        consensus.PoolAddresses.push_back("CeGkMmN8pvc9rdru2Wqb1bA2rC8dQesKJ4");
+        consensus.PoolAddresses.push_back("CZu7d51zAgDzRnqnUU6qJejEiU3kJ7ZkDs");
+        consensus.PoolAddresses.push_back("CRxRgjnz3MPi7FCeV3oXjALLXbnesz8v3F"); 
+        consensus.PoolAddresses.push_back("CKf2HLDFhADwuS5z41JKCQqQgaj29MCujK");
+
         consensus.BitcoinPostforkBlock = uint256S("0000000000000000007b746068bd08ba4089f97636690e9dc758774e7db21f17");	// 512666 block hash
         consensus.BitcoinPostforkTime = 1515799972;
 
