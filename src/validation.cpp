@@ -2229,8 +2229,7 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
                 break;
             }
             else if (i == nPoolSize-1) {
-                    return state.DoS(100, error("invalid coinbase tx, minimumMineReward=%d, actual reward=%d, pooladdress=%s", 
-                         minimumMineReward, block.vtx[0]->vout[0].nValue, PoolAddress), REJECT_INVALID, "blk-bad-scriptPubKey");
+                    return state.DoS(100, error("invalid coinbase tx"), REJECT_INVALID, "blk-bad-scriptPubKey");
             }
         }
     }
