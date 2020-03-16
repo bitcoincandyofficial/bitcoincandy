@@ -2215,7 +2215,7 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
     Amount minimumMineReward = blockReward/2;
     uint32_t PoolPoSHeight = 1020000;
     uint32_t nPoolSize = chainparams.GetConsensus().PoolAddresses.size();
-    if(nPoolSize > 0 && PoolPoSHeight >= PoolPoSHeight) {
+    if(nPoolSize > 0 && block.nHeight >= PoolPoSHeight) {
         std::string PoolAddress;
         CTxDestination destination;
         CScript PoolScript;
@@ -2224,10 +2224,13 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
             PoolAddress = chainparams.GetConsensus().PoolAddresses[i];
             destination = DecodeDestination(PoolAddress);
             PoolScript = GetScriptForDestination(destination);
-            if (block.vtx[0]->vout[0].nValue < minimumMineReward  ||
-                block.vtx[0]->vout[0].scriptPubKey != PoolScript) {
-                return state.DoS(100, false, REJECT_INVALID, "blk-bad-scriptPubKey", false,
-                "invalidate coinbase transaction");
+            if (block.vtx[0]->vout[0].nValue >= minimumMineReward  &&
+                block.vtx[0]->vout[0].scriptPubKey == PoolScript) {
+                break;
+            }
+            else if (i == nPoolSize-1) {
+                    return state.DoS(100, error("invalid coinbase tx, minimumMineReward=%d, actual reward=%d, pooladdress=%s", 
+                         minimumMineReward, block.vtx[0]->vout[0].nValue, PoolAddress), REJECT_INVALID, "blk-bad-scriptPubKey");
             }
         }
     }
