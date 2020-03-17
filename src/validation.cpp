@@ -1988,7 +1988,6 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
         if (!fJustCheck) {
             view.SetBestBlock(pindex->GetBlockHash());
         }
-
         return true;
     }
 
@@ -2127,9 +2126,7 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
 
     for (size_t i = 0; i < block.vtx.size(); i++) {
         const CTransaction &tx = *(block.vtx[i]);
-
         nInputs += tx.vin.size();
-
         if (!tx.IsCoinBase()) {
             if (!view.HaveInputs(tx)) {
                 return state.DoS(
@@ -2215,18 +2212,30 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
                          REJECT_INVALID, "bad-cb-amount");
     }
 
-    if (block.nHeight == chainparams.GetConsensus().nCompenseHeight) {
-        CScript scriptPubKeyCompense;
-        const std::string sCompenseAddress = chainparams.GetConsensus().sCompenseAddress;
-        CTxDestination destination = DecodeDestination(sCompenseAddress);
-        scriptPubKeyCompense = GetScriptForDestination(destination);
-        if (block.vtx[0]->vout.size()!= 1 || 
-            block.vtx[0]->vout[0].scriptPubKey != scriptPubKeyCompense) {
-        return state.DoS(100, false, REJECT_INVALID, "blk-bad-scriptPubKey", false,
-                         "not the expected scriptPubKey at compense height");
+    Amount minimumMineReward = blockReward/2;
+    uint32_t PoolPoSHeight = 1020000;
+    uint32_t nPoolSize = chainparams.GetConsensus().PoolAddresses.size();
+    if(nPoolSize > 0 && block.nHeight >= PoolPoSHeight) {
+        std::string PoolAddress;
+        CTxDestination destination;
+        CScript PoolScript;
+        for(size_t i = 0; i < nPoolSize; i++)
+        {
+            PoolAddress = chainparams.GetConsensus().PoolAddresses[i];
+            destination = DecodeDestination(PoolAddress);
+            PoolScript = GetScriptForDestination(destination);
+            if (block.vtx[0]->vout[0].nValue >= minimumMineReward  &&
+                block.vtx[0]->vout[0].scriptPubKey == PoolScript) {
+                break;
+            }
+            else if (i == nPoolSize-1) {
+                    return state.DoS(100, error("invalid coinbase tx"), REJECT_INVALID, "blk-bad-scriptPubKey");
+            }
         }
     }
-    
+
+
+
     if (!control.Wait()) {
         return state.DoS(100, false, REJECT_INVALID, "blk-bad-inputs", false,
                          "parallel script check failed");

@@ -61,8 +61,10 @@ struct Params {
     /** Height to publish compensing coins*/
     uint32_t nCompenseHeight;
     
-    std::string sCompenseAddress;
     
+    //add Pool based pos
+    std::vector<std::string> PoolAddresses;
+
     /** Limit BITCOIN_MAX_FUTURE_BLOCK_TIME **/
     int64_t CDYMaxFutureBlockTime;
     
