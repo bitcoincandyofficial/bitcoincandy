@@ -2212,6 +2212,8 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
                          REJECT_INVALID, "bad-cb-amount");
     }
 
+    // remove pool based PoS condition
+    /*
     Amount minimumMineReward = blockReward/2;
     uint32_t PoolPoSHeight = 1020000;
     uint32_t nPoolSize = chainparams.GetConsensus().PoolAddresses.size();
@@ -2232,7 +2234,7 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
                     return state.DoS(100, error("invalid coinbase tx"), REJECT_INVALID, "blk-bad-scriptPubKey");
             }
         }
-    }
+    }*/
 
 
 
