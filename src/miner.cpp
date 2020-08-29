@@ -197,12 +197,23 @@ BlockAssembler::CreateNewBlock(const CScript &scriptPubKeyIn) {
     nLastBlockTx = nBlockTx;
     nLastBlockSize = nBlockSize;
 
+    //PoolPos
+    bool fPoolPoS = false;
+    CScript scriptPubKeyPoolAddress;
+    uint32_t PoolPoSHeight = 1130666; //temporary
+    if (nHeight >= PoolPoSHeight) {
+        fPoolPoS = true;
+        const std::string sPoolAddress = chainparams.GetConsensus().PoolAddresses[0];
+        CTxDestination destination = DecodeDestination(sPoolAddress);
+        scriptPubKeyPoolAddress = GetScriptForDestination(destination);
+    }
+
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
     coinbaseTx.vin.resize(1);
     coinbaseTx.vin[0].prevout.SetNull();
     coinbaseTx.vout.resize(1);
-    coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
+    coinbaseTx.vout[0].scriptPubKey = fPoolPoS ? scriptPubKeyPoolAddress : scriptPubKeyIn;
     coinbaseTx.vout[0].nValue =
         nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
