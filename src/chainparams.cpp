@@ -184,6 +184,8 @@ public:
         consensus.PoolAddresses.push_back("CZu7d51zAgDzRnqnUU6qJejEiU3kJ7ZkDs");
         consensus.PoolAddresses.push_back("CRxRgjnz3MPi7FCeV3oXjALLXbnesz8v3F"); 
         consensus.PoolAddresses.push_back("CKf2HLDFhADwuS5z41JKCQqQgaj29MCujK");
+        consensus.PoolAddresses.push_back("CKcPqn8pdSWSV11QxZNq7WVXjQyBwcouji");
+
 
         consensus.BitcoinPostforkBlock = uint256S("0000000000000000007b746068bd08ba4089f97636690e9dc758774e7db21f17");	// 512666 block hash
         consensus.BitcoinPostforkTime = 1515799972;
