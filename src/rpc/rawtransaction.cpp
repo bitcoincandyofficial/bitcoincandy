@@ -500,9 +500,14 @@ static UniValue createrawtransaction(const Config &config,
         uint256 txid = ParseHashO(o, "txid");
 
         const UniValue &vout_v = find_value(o, "vout");
-        if (!vout_v.isNum()) {
+        if (vout_v.isNull()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER,
                                "Invalid parameter, missing vout key");
+        }
+
+        if (!vout_v.isNum()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                               "Invalid parameter, vout must be a number");
         }
 
         int nOutput = vout_v.get_int();
@@ -642,6 +647,94 @@ static UniValue decoderawtransaction(const Config &config,
     return result;
 }
 
+
+static UniValue replayblock(const Config &config,
+                            const JSONRPCRequest &request) {
+    if (request.fHelp || request.params.size() != 1) {
+        throw std::runtime_error(
+            "replayblock \"hexstring\"\n"
+            "\nReturn replay tx result.\n"
+            "\nArguments:\n"
+            "1. \"hexstring\"      (string, required) The block hex "
+            "string\n"
+
+            "\nResult:\n"
+            "{\n"
+            "}\n"
+            "\nExamples:\n" +
+            HelpExampleCli("decoderawtransaction", "\"blockhexstring\"") +
+            HelpExampleRpc("decoderawtransaction", "\"blockhexstring\""));
+    }
+
+    LOCK(cs_main);
+    RPCTypeCheck(request.params, {UniValue::VSTR});
+
+    std::shared_ptr<CBlock> blockptr = std::make_shared<CBlock>();
+    CBlock &block = *blockptr;
+    bool legacy_format = false;
+    if (!DecodeHexBlk(block, request.params[0].get_str(), legacy_format)) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block decode failed");
+    }
+
+    if (block.vtx.empty() || !block.vtx[0]->IsCoinBase()) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                           "Block does not start with a coinbase");
+    }
+
+    bool fLimitFree = false;
+    Amount nMaxRawTxFee = maxTxFee;
+    uint32_t nMissingInput = 0;
+    uint32_t nAlreadyInChain = 0;
+    uint32_t nOtherError = 0;
+	
+    //skip coinbase transaction
+    for (unsigned int i = 1; i < block.vtx.size(); i++) {
+        CTransactionRef tx = block.vtx[i];
+        const uint256 &txid = tx->GetId();
+        CCoinsViewCache &view = *pcoinsTip;
+        bool fHaveChain = false;
+        for (size_t o = 0; !fHaveChain && o < tx->vout.size(); o++) {
+            const Coin &existingCoin = view.AccessCoin(COutPoint(txid, o));
+            fHaveChain = !existingCoin.IsSpent();
+        }
+        bool fHaveMempool = mempool.exists(txid);
+            if (!fHaveMempool && !fHaveChain) {
+                // Push to local node and sync with wallets.
+                CValidationState state;
+                bool fMissingInputs;
+                if (!AcceptToMemoryPool(config, mempool, state, std::move(tx),
+                                        fLimitFree, &fMissingInputs, false,
+                                        nMaxRawTxFee)) {
+                    if (state.IsInvalid()) {
+                        nOtherError++;
+                    } else {
+                        if (fMissingInputs) {
+                           nMissingInput++;
+                        } else
+                        nOtherError++;
+                    }
+                }
+            } else if (fHaveChain) {
+                nAlreadyInChain++;
+           }
+
+            if (!g_connman) {
+                throw JSONRPCError(
+                    RPC_CLIENT_P2P_DISABLED,
+                    "Error: Peer-to-peer functionality missing or disabled");
+            }
+
+            CInv inv(MSG_TX, txid);
+            g_connman->ForEachNode([&inv](CNode *pnode) { pnode->PushInventory(inv); });
+    }
+    char result[200];
+    sprintf(result, "Replay block done, %d tx in total, %d missing inputs, %d already in chain, %d other error",
+            block.vtx.size()-1, nMissingInput, nAlreadyInChain, nOtherError);
+    return result;
+
+}
+
+
 static UniValue decodescript(const Config &config,
                              const JSONRPCRequest &request) {
     if (request.fHelp || request.params.size() != 1) {
@@ -708,6 +801,105 @@ static void TxInErrorToJSON(const CTxIn &txin, UniValue &vErrorsRet,
     entry.push_back(Pair("sequence", (uint64_t)txin.nSequence));
     entry.push_back(Pair("error", strMessage));
     vErrorsRet.push_back(entry);
+}
+
+UniValue combinerawtransaction(const Config &config,
+                               const JSONRPCRequest &request) {
+
+    if (request.fHelp || request.params.size() != 1) {
+        throw std::runtime_error(
+            "combinerawtransaction [\"hexstring\",...]\n"
+            "\nCombine multiple partially signed transactions into one "
+            "transaction.\n"
+            "The combined transaction may be another partially signed "
+            "transaction or a \n"
+            "fully signed transaction."
+
+            "\nArguments:\n"
+            "1. \"txs\"         (string) A json array of hex strings of "
+            "partially signed transactions\n"
+            "    [\n"
+            "      \"hexstring\"     (string) A transaction hash\n"
+            "      ,...\n"
+            "    ]\n"
+
+            "\nResult:\n"
+            "\"hex\" : \"value\",           (string) The hex-encoded raw "
+            "transaction with signature(s)\n"
+
+            "\nExamples:\n" +
+            HelpExampleCli("combinerawtransaction",
+                           "[\"myhex1\", \"myhex2\", \"myhex3\"]"));
+    }
+
+    UniValue txs = request.params[0].get_array();
+    std::vector<CMutableTransaction> txVariants(txs.size());
+
+    for (unsigned int idx = 0; idx < txs.size(); idx++) {
+        if (!DecodeHexTx(txVariants[idx], txs[idx].get_str())) {
+            throw JSONRPCError(RPC_DESERIALIZATION_ERROR,
+                               strprintf("TX decode failed for tx %d", idx));
+        }
+    }
+
+    if (txVariants.empty()) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Missing transactions");
+    }
+
+    // mergedTx will end up with all the signatures; it
+    // starts as a clone of the rawtx:
+    CMutableTransaction mergedTx(txVariants[0]);
+
+    // Fetch previous transactions (inputs):
+    CCoinsView viewDummy;
+    CCoinsViewCache view(&viewDummy);
+    {
+        LOCK(cs_main);
+        LOCK(mempool.cs);
+        CCoinsViewCache &viewChain = *pcoinsTip;
+        CCoinsViewMemPool viewMempool(&viewChain, mempool);
+        // temporarily switch cache backend to db+mempool view
+        view.SetBackend(viewMempool);
+
+        for (const CTxIn &txin : mergedTx.vin) {
+            // Load entries from viewChain into view; can fail.
+            view.AccessCoin(txin.prevout);
+        }
+
+        // switch back to avoid locking mempool for too long
+        view.SetBackend(viewDummy);
+    }
+
+    // Use CTransaction for the constant parts of the
+    // transaction to avoid rehashing.
+    const CTransaction txConst(mergedTx);
+    // Sign what we can:
+    for (size_t i = 0; i < mergedTx.vin.size(); i++) {
+        CTxIn &txin = mergedTx.vin[i];
+        const Coin &coin = view.AccessCoin(txin.prevout);
+        if (coin.IsSpent()) {
+            throw JSONRPCError(RPC_VERIFY_ERROR,
+                               "Input not found or already spent");
+        }
+        const CScript &prevPubKey = coin.GetTxOut().scriptPubKey;
+        const Amount &amount = coin.GetTxOut().nValue;
+
+        SignatureData sigdata;
+
+        // ... and merge in other signatures:
+        for (const CMutableTransaction &txv : txVariants) {
+            if (txv.vin.size() > i) {
+                sigdata = CombineSignatures(
+                    prevPubKey,
+                    TransactionSignatureChecker(&txConst, i, amount), sigdata,
+                    DataFromTransaction(txv, i));
+            }
+        }
+
+        UpdateTransaction(mergedTx, i, sigdata);
+    }
+
+    return EncodeHexTx(CTransaction(mergedTx));
 }
 
 static UniValue signrawtransaction(const Config &config,
@@ -1172,7 +1364,9 @@ static const CRPCCommand commands[] = {
     { "rawtransactions",    "decoderawtransaction",   decoderawtransaction,   true,  {"hexstring"} },
     { "rawtransactions",    "decodescript",           decodescript,           true,  {"hexstring"} },
     { "rawtransactions",    "sendrawtransaction",     sendrawtransaction,     false, {"hexstring","allowhighfees"} },
+    { "rawtransactions",    "combinerawtransaction",  combinerawtransaction,  false, {"txs"} },
     { "rawtransactions",    "signrawtransaction",     signrawtransaction,     false, {"hexstring","prevtxs","privkeys","sighashtype"} }, /* uses wallet if enabled */
+    { "rawtransactions",    "replayblock",            replayblock,            true,  {"hexstring"}},
 
     { "blockchain",         "gettxoutproof",          gettxoutproof,          true,  {"txids", "blockhash"} },
     { "blockchain",         "verifytxoutproof",       verifytxoutproof,       true,  {"proof"} },

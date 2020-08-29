@@ -1,11 +1,10 @@
-Bitcoin ABC version 0.16.2 is now available from:
+Bitcoin Candy version 0.18.1 is now available from:
 
-  <https://download.bitcoinabc.org/0.16.2/>
+  <https://cdy.one>
 
 This release includes the following features and fixes:
-
- - Remove the newdaaactivationtime configuration.
- - Do not use the NODE_BITCOIN_CASH service bit for preferencial peering anymore.
- - Only connect to node using the cash magic.
- - Remove indicator mentionning if a node uses the cash magic getpeerinfo RPC.
- - Add support for the new cashaddr format. The `-usecashaddr` flag can be used to select which format is used when presenting addresses to users. By default, Bitcoin ABC will keep using the old format until Jan, 14 and then switch to the new format. Both format are now accepted as input.
+ - Add parkblock/unparkblock RPC commands and "parked" state to getchiantips RPC
+ - Add the finalized block concept. Finalized blocks cannot be reorged, which protects the network against deep reorgs.
+ - Add the `-maxreorgdepth` configuration to configure at what depth block are considered final. Default is 10. Use -1 to disable.
+ - Introduce `finalizeblock` RPC to finalize a block at the will of the node operator.
+ - Introduce a penalty to alternative chains based on the depth of the fork. This makes it harder for an attacker to do mid size reorg.

@@ -58,6 +58,13 @@ struct Params {
     int CDYZawyLWMAHeight;
     /** Block height at which Equihash<144,5> becomes active */
     int CDYEquihashForkHeight;
+    /** Height to publish compensing coins*/
+    uint32_t nCompenseHeight;
+    
+    
+    //add Pool based pos
+    std::vector<std::string> PoolAddresses;
+
     /** Limit BITCOIN_MAX_FUTURE_BLOCK_TIME **/
     int64_t CDYMaxFutureBlockTime;
     

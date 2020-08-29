@@ -172,7 +172,9 @@ void Interrupt(boost::thread_group &threadGroup) {
     InterruptRPC();
     InterruptREST();
     InterruptTorControl();
-    if (g_connman) g_connman->Interrupt();
+    if (g_connman) {
+        g_connman->Interrupt();
+    }
     threadGroup.interrupt_all();
 }
 
@@ -180,7 +182,9 @@ void Shutdown() {
     LogPrintf("%s: In progress...\n", __func__);
     static CCriticalSection cs_Shutdown;
     TRY_LOCK(cs_Shutdown, lockShutdown);
-    if (!lockShutdown) return;
+    if (!lockShutdown) {
+        return;
+    }
 
     /// Note: Shutdown() must be able to handle cases in which AppInit2() failed
     /// part of the way, for example if the data directory was found to be
@@ -210,11 +214,12 @@ void Shutdown() {
             GetDataDir() / FEE_ESTIMATES_FILENAME;
         CAutoFile est_fileout(fopen(est_path.string().c_str(), "wb"), SER_DISK,
                               CLIENT_VERSION);
-        if (!est_fileout.IsNull())
+        if (!est_fileout.IsNull()) {
             mempool.WriteFeeEstimates(est_fileout);
-        else
+        } else {
             LogPrintf("%s: Failed to write fee estimates to %s\n", __func__,
                       est_path.string());
+        }
         fFeeEstimatesInitialized = false;
     }
 
@@ -319,12 +324,13 @@ std::string HelpMessage(HelpMessageMode mode) {
     strUsage += HelpMessageOpt("-blocknotify=<cmd>",
                                _("Execute command when the best block changes "
                                  "(%s in cmd is replaced by block hash)"));
-    if (showDebug)
+    if (showDebug) {
         strUsage += HelpMessageOpt(
             "-blocksonly",
             strprintf(
                 _("Whether to operate in a blocks only mode (default: %d)"),
                 DEFAULT_BLOCKSONLY));
+    }
     strUsage += HelpMessageOpt(
         "-assumevalid=<hex>",
         strprintf(_("If this block is in the chain assume that it and its "
@@ -352,11 +358,13 @@ std::string HelpMessage(HelpMessageMode mode) {
         strprintf(
             _("Set database cache size in megabytes (%d to %d, default: %d)"),
             nMinDbCache, nMaxDbCache, nDefaultDbCache));
-    if (showDebug)
+    if (showDebug) {
         strUsage += HelpMessageOpt(
             "-feefilter", strprintf("Tell other nodes to filter invs to us by "
                                     "our mempool min fee (default: %d)",
                                     DEFAULT_FEEFILTER));
+    }
+
     strUsage += HelpMessageOpt(
         "-loadblock=<file>",
         _("Imports blocks from external blk000??.dat file on startup"));
@@ -439,16 +447,17 @@ std::string HelpMessage(HelpMessageMode mode) {
     strUsage += HelpMessageOpt("-bind=<addr>",
                                _("Bind to given address and always listen on "
                                  "it. Use [host]:port notation for IPv6"));
-    strUsage +=
-        HelpMessageOpt("-connect=<ip>",
-                       _("Connect only to the specified node(s); -noconnect or "
-                         "-connect=0 alone to disable automatic connections"));
+    strUsage += HelpMessageOpt(
+        "-connect=<ip>", _("Connect only to the specified node(s); -connect=0 "
+                           "disables automatic connections (the rules for this "
+                           "peer are the same as for -addnode)"));
     strUsage += HelpMessageOpt("-discover",
                                _("Discover own IP addresses (default: 1 when "
                                  "listening and no -externalip or -proxy)"));
     strUsage += HelpMessageOpt(
-        "-dns", _("Allow DNS lookups for -addnode, -seednode and -connect") +
-                    " " + strprintf(_("(default: %d)"), DEFAULT_NAME_LOOKUP));
+        "-dns",
+        _("Allow DNS lookups for -addnode, -seednode and -connect") + " " +
+            strprintf(_("(default: %d)"), DEFAULT_NAME_LOOKUP));
     strUsage += HelpMessageOpt(
         "-dnsseed", _("Query for peer addresses via DNS lookup, if low on "
                       "addresses (default: 1 unless -connect/-noconnect)"));
@@ -614,8 +623,8 @@ std::string HelpMessage(HelpMessageMode mode) {
                 "Run checks every <n> transactions (default: %d)",
                 Params(CBaseChainParams::MAIN).DefaultConsistencyChecks()));
         strUsage += HelpMessageOpt(
-            "-checkpoints", strprintf("Disable expensive verification for "
-                                      "known chain history (default: %d)",
+            "-checkpoints", strprintf("Only accept block chain matching "
+                                      "built-in checkpoints (default: %d)",
                                       DEFAULT_CHECKPOINTS_ENABLED));
         strUsage += HelpMessageOpt(
             "-disablesafemode", strprintf("Disable safemode, override a real "
@@ -813,10 +822,11 @@ std::string HelpMessage(HelpMessageMode mode) {
         strprintf(_("Set lowest fee rate (in %s/kB) for transactions to be "
                     "included in block creation. (default: %s)"),
                   CURRENCY_UNIT, FormatMoney(DEFAULT_BLOCK_MIN_TX_FEE)));
-    if (showDebug)
+    if (showDebug) {
         strUsage +=
             HelpMessageOpt("-blockversion=<n>",
                            "Override block version to test forking scenarios");
+    }
 
     strUsage += HelpMessageGroup(_("RPC server options:"));
     strUsage += HelpMessageOpt("-server",
@@ -877,8 +887,8 @@ std::string HelpMessage(HelpMessageMode mode) {
 
 std::string LicenseInfo() {
     const std::string URL_SOURCE_CODE =
-        "<https://github.com/bitcoincandyteam/bitcoincandy>";
-    const std::string URL_WEBSITE = "<http://www.bitcoincandy.one";
+        "<https://github.com/bitcoincandyofficial/bitcoincandy>";
+    const std::string URL_WEBSITE = "<http://cdy.one";
 
     return CopyrightHolders(
                strprintf(_("Copyright (C) %i-%i"), 2009, COPYRIGHT_YEAR) +
@@ -904,7 +914,9 @@ std::string LicenseInfo() {
 
 static void BlockNotifyCallback(bool initialSync,
                                 const CBlockIndex *pBlockIndex) {
-    if (initialSync || !pBlockIndex) return;
+    if (initialSync || !pBlockIndex) {
+        return;
+    }
 
     std::string strCmd = GetArg("-blocknotify", "");
 
@@ -1083,11 +1095,19 @@ static bool AppInitServers(Config &config, boost::thread_group &threadGroup) {
     RPCServer::OnStarted(&OnRPCStarted);
     RPCServer::OnStopped(&OnRPCStopped);
     RPCServer::OnPreCommand(&OnRPCPreCommand);
-    if (!InitHTTPServer(config)) return false;
-    if (!StartRPC()) return false;
-    if (!StartHTTPRPC()) return false;
+    if (!InitHTTPServer(config)) {
+        return false;
+    }
+    if (!StartRPC()) {
+        return false;
+    }
+    if (!StartHTTPRPC()) { 
+        return false;
+    }
     if (GetBoolArg("-rest", DEFAULT_REST_ENABLE) && !StartREST()) return false;
-    if (!StartHTTPServer()) return false;
+    if (!StartHTTPServer()) {
+        return false;
+    }
     return true;
 }
 
@@ -1249,7 +1269,9 @@ bool AppInitBasicSetup() {
     if (setProcDEPPol != nullptr) setProcDEPPol(PROCESS_DEP_ENABLE);
 #endif
 
-    if (!SetupNetworking()) return InitError("Initializing networking failed");
+    if (!SetupNetworking()) {
+        return InitError("Initializing networking failed");
+    }
 
 #ifndef WIN32
     if (!GetBoolArg("-sysperms", false)) {
@@ -1321,16 +1343,18 @@ bool AppInitParameterInteraction(Config &config) {
                  0);
     nFD = RaiseFileDescriptorLimit(nMaxConnections + MIN_CORE_FILEDESCRIPTORS +
                                    MAX_ADDNODE_CONNECTIONS);
-    if (nFD < MIN_CORE_FILEDESCRIPTORS)
+    if (nFD < MIN_CORE_FILEDESCRIPTORS) {
         return InitError(_("Not enough file descriptors available."));
+    }
     nMaxConnections =
         std::min(nFD - MIN_CORE_FILEDESCRIPTORS - MAX_ADDNODE_CONNECTIONS,
                  nMaxConnections);
 
-    if (nMaxConnections < nUserMaxConnections)
+    if (nMaxConnections < nUserMaxConnections) {
         InitWarning(strprintf(_("Reducing -maxconnections from %d to %d, "
                                 "because of system limitations."),
                               nUserMaxConnections, nMaxConnections));
+    }
 
     // Step 3: parameter-to-internal-flags
 
@@ -2164,7 +2188,6 @@ bool AppInitMain(Config &config, boost::thread_group &threadGroup,
     }
 
     // Step 10: import blocks
-
     if (!CheckDiskSpace()) {
         return false;
     }

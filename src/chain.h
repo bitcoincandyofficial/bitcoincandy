@@ -7,6 +7,7 @@
 #define BITCOIN_CHAIN_H
 
 #include "arith_uint256.h"
+#include "blockstatus.h"
 #include "consensus/params.h"
 #include "pow.h"
 #include "primitives/block.h"
@@ -131,53 +132,6 @@ struct CDiskBlockPos {
     }
 };
 
-enum BlockStatus : uint32_t {
-    //! Unused.
-    BLOCK_VALID_UNKNOWN = 0,
-
-    //! Parsed, version ok, hash satisfies claimed PoW, 1 <= vtx count <= max,
-    //! timestamp not in future
-    BLOCK_VALID_HEADER = 1,
-
-    //! All parent headers found, difficulty matches, timestamp >= median
-    //! previous, checkpoint. Implies all parents are also at least TREE.
-    BLOCK_VALID_TREE = 2,
-
-    /**
-     * Only first tx is coinbase, 2 <= coinbase input script length <= 100,
-     * transactions valid, no duplicate txids, sigops, size, merkle root.
-     * Implies all parents are at least TREE but not necessarily TRANSACTIONS.
-     * When all parent blocks also have TRANSACTIONS, CBlockIndex::nChainTx will
-     * be set.
-     */
-    BLOCK_VALID_TRANSACTIONS = 3,
-
-    //! Outputs do not overspend inputs, no double spends, coinbase output ok,
-    //! no immature coinbase spends, BIP30.
-    //! Implies all parents are also at least CHAIN.
-    BLOCK_VALID_CHAIN = 4,
-
-    //! Scripts & signatures ok. Implies all parents are also at least SCRIPTS.
-    BLOCK_VALID_SCRIPTS = 5,
-
-    //! All validity bits.
-    BLOCK_VALID_MASK = BLOCK_VALID_HEADER | BLOCK_VALID_TREE |
-                       BLOCK_VALID_TRANSACTIONS | BLOCK_VALID_CHAIN |
-                       BLOCK_VALID_SCRIPTS,
-
-    //!< full block available in blk*.dat
-    BLOCK_HAVE_DATA = 8,
-    //!< undo data available in rev*.dat
-    BLOCK_HAVE_UNDO = 16,
-    BLOCK_HAVE_MASK = BLOCK_HAVE_DATA | BLOCK_HAVE_UNDO,
-
-    //!< stage after last reached validness failed
-    BLOCK_FAILED_VALID = 32,
-    //!< descends from failed block
-    BLOCK_FAILED_CHILD = 64,
-    BLOCK_FAILED_MASK = BLOCK_FAILED_VALID | BLOCK_FAILED_CHILD,
-};
-
 /**
  * The block chain is a tree shaped structure starting with the genesis block at
  * the root, with each block potentially having multiple candidates to be the
@@ -225,7 +179,7 @@ public:
     unsigned int nChainTx;
 
     //! Verification status of this block. See enum BlockStatus
-    uint32_t nStatus;
+    BlockStatus nStatus;
 
     //! block header
     int32_t nVersion;
@@ -254,7 +208,7 @@ public:
         nChainWork = arith_uint256();
         nTx = 0;
         nChainTx = 0;
-        nStatus = 0;
+        nStatus =  BlockStatus();
         nSequenceId = 0;
         nTimeMax = 0;
 
@@ -285,7 +239,7 @@ public:
 
     CDiskBlockPos GetBlockPos() const {
         CDiskBlockPos ret;
-        if (nStatus & BLOCK_HAVE_DATA) {
+        if (nStatus.hasData()) {
             ret.nFile = nFile;
             ret.nPos = nDataPos;
         }
@@ -294,7 +248,7 @@ public:
 
     CDiskBlockPos GetUndoPos() const {
         CDiskBlockPos ret;
-        if (nStatus & BLOCK_HAVE_UNDO) {
+        if (nStatus.hasUndo()) {
             ret.nFile = nFile;
             ret.nPos = nUndoPos;
         }
@@ -348,28 +302,24 @@ public:
 
     //! Check whether this block index entry is valid up to the passed validity
     //! level.
-    bool IsValid(enum BlockStatus nUpTo = BLOCK_VALID_TRANSACTIONS) const {
-        // Only validity flags allowed.
-        assert(!(nUpTo & ~BLOCK_VALID_MASK));
-        if (nStatus & BLOCK_FAILED_MASK) {
-            return false;
-        }
-        return ((nStatus & BLOCK_VALID_MASK) >= nUpTo);
+    bool IsValid(enum BlockValidity nUpTo = BlockValidity::TRANSACTIONS) const {
+        return nStatus.isValid(nUpTo);
     }
 
     //! Raise the validity level of this block index entry.
     //! Returns true if the validity was changed.
-    bool RaiseValidity(enum BlockStatus nUpTo) {
+    bool RaiseValidity(enum BlockValidity nUpTo) {
         // Only validity flags allowed.
-        assert(!(nUpTo & ~BLOCK_VALID_MASK));
-        if (nStatus & BLOCK_FAILED_MASK) {
+        if (nStatus.isInvalid()) {
             return false;
         }
-        if ((nStatus & BLOCK_VALID_MASK) < nUpTo) {
-            nStatus = (nStatus & ~BLOCK_VALID_MASK) | nUpTo;
-            return true;
+
+        if (nStatus.getValidity() >= nUpTo) {
+            return false;
         }
-        return false;
+
+        nStatus = nStatus.withValidity(nUpTo);
+        return true;
     }
 
     //! Build the skiplist pointer for this entry.
@@ -401,6 +351,16 @@ int64_t GetBlockProofEquivalentTime(const CBlockIndex &to,
                                     const CBlockIndex &from,
                                     const CBlockIndex &tip,
                                     const Consensus::Params &);
+/**
+ * Find the forking point between two chain tips.
+ */
+const CBlockIndex *LastCommonAncestor(const CBlockIndex *pa,
+                                      const CBlockIndex *pb);
+
+/**
+ * Check if two block index are on the same fork.
+ */
+bool AreOnTheSameFork(const CBlockIndex *pa, const CBlockIndex *pb);
 
 /** Used to marshal pointers into hashes for db storage. */
 class CDiskBlockIndex : public CBlockIndex {
@@ -423,15 +383,15 @@ public:
         }
 
         READWRITE(VARINT(nHeight));
-        READWRITE(VARINT(nStatus));
+        READWRITE(nStatus);
         READWRITE(VARINT(nTx));
-        if (nStatus & (BLOCK_HAVE_DATA | BLOCK_HAVE_UNDO)) {
+        if (nStatus.hasData() || nStatus.hasUndo()) {
             READWRITE(VARINT(nFile));
         }
-        if (nStatus & BLOCK_HAVE_DATA) {
+        if (nStatus.hasData()) {
             READWRITE(VARINT(nDataPos));
         }
-        if (nStatus & BLOCK_HAVE_UNDO) {
+        if (nStatus.hasUndo()) {
             READWRITE(VARINT(nUndoPos));
         }
 
