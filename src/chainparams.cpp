@@ -233,8 +233,9 @@ public:
         // subset of possible options.
         // Bitcoin ABC seeder
         vSeeds.push_back(
-            CDNSSeedData("bitcoincandy.one", "seed.bitcoincandy.one", true));
-        vSeeds.push_back(CDNSSeedData("cdy.one", "seed.cdy.one", true));
+            CDNSSeedData("cdy.one", "seed.cdy.one", true));
+        vSeeds.push_back(CDNSSeedData("block.cdy.one", "block.cdy.one", true));
+	vSeeds.push_back(CDNSSeedData("bitcdy.com", "seed.bitcdy.com", true));
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<uint8_t>(1, 0x1c); // 'C'
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<uint8_t>(1, 0x58); // 'c'
@@ -294,6 +295,12 @@ public:
                 //roll back block for coin infaltion
                 {671663, uint256S("0x00000241636f7d345b239a2dd785b8e834b494de4d"
                                   "307535d7afb7b1cb84a641")},
+                // pool protected
+                {1219400, uint256S("0x00024e9dba1c7b44a73775ef82664ecd75463dd508"
+                                  "952cdb91c9a74fcc6c5ef4")},
+                // first qt wallet community release
+                {1401507, uint256S("0x0000a96b572445938b57a70af5880a9087c57a6737"
+                                  "1e9bad6b4e4b11d8a16ad2")},
             }};
 
         // Data as of block
