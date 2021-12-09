@@ -1,7 +1,7 @@
 Bitcoin Candy
 ===========
 
-https://cdy.one
+https://cdy.one/
 
 What is Bitcoin candy?
 Bitcoin candy is a hard fork of Bitcoin Cash. Compared to Bitcoin Cash, it brings more attractive featuresï¼?
