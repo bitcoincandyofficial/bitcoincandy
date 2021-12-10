@@ -254,6 +254,7 @@ public:
         // Bitcoin ABC seeder
         vSeeds.push_back(CDNSSeedData("seed.cdy.one", "seed.cdy.one", true));
         vSeeds.push_back(CDNSSeedData("cdyseed1.awmlite.com", "cdyseed1.awmlite.com", true));
+        vSeeds.push_back(CDNSSeedData("cdyseed2.awmlite.com", "cdyseed2.awmlite.com", true));
         vSeeds.push_back(CDNSSeedData("block.cdy.one", "block.cdy.one", true));
         vSeeds.push_back(CDNSSeedData("seed.bitcdy.com", "seed.bitcdy.com", true));
 
