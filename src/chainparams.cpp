@@ -179,11 +179,31 @@ public:
  
         /** Height to publish compensing coins*/
         consensus.nCompenseHeight = 758000;
+
+
+        /** Height to publish cdy community pool protection plan to prevent attacks, decrease sell pressure */
+        consensus.nPoolProtectionPlan = 1444444;
         
-        consensus.PoolAddresses.push_back("CeGkMmN8pvc9rdru2Wqb1bA2rC8dQesKJ4");
-        consensus.PoolAddresses.push_back("CZu7d51zAgDzRnqnUU6qJejEiU3kJ7ZkDs");
-        consensus.PoolAddresses.push_back("CRxRgjnz3MPi7FCeV3oXjALLXbnesz8v3F"); 
-        consensus.PoolAddresses.push_back("CKf2HLDFhADwuS5z41JKCQqQgaj29MCujK");
+        consensus.validPoolAddresses.push_back("CRxRgjnz3MPi7FCeV3oXjALLXbnesz8v3F"); // euro pool 1
+        consensus.validPoolAddresses.push_back("CZsrKKX7y8iPjrJ4rrE4vkooFgMKNagAWV"); // euro pool 2
+        consensus.validPoolAddresses.push_back("CeGkMmN8pvc9rdru2Wqb1bA2rC8dQesKJ4"); // cdy prev devs offical pool
+
+        // future/backup approved pools
+        consensus.validPoolAddresses.push_back("CUZEtmvpGP5qQSTfXxDoPrjjfpNPkfjR6y");
+        consensus.validPoolAddresses.push_back("CXRQpdTjKHt1Le4MXg1KNviLzzzKaZUQAq");
+        consensus.validPoolAddresses.push_back("CUXCHGAYKvpe9cCLbPeCyYbufRSa1uWuZx");
+        consensus.validPoolAddresses.push_back("CMuDu72BGBD173gqgk6JbT7w89JByrcAZb");
+        consensus.validPoolAddresses.push_back("CRTk7w3fFv9esRuSmWzqcJWCfq4Nu7atQn");
+        consensus.validPoolAddresses.push_back("CMuDu72BGBD173gqgk6JbT7w89JByrcAZb");
+        consensus.validPoolAddresses.push_back("CfoAfx2ZFj1dUaHfPynxXSHAcxdpafbnep");
+        consensus.validPoolAddresses.push_back("CKDnAdQFuyVY5HL299KKnc3c77JDgPtveQ");
+        consensus.validPoolAddresses.push_back("CY3QiJSwqpR9bfuvGkTQK3pCkApskAePHU");
+        consensus.validPoolAddresses.push_back("CMpYsMQtqQPq1qfViw73uRutRS83q3DwRe");
+        consensus.validPoolAddresses.push_back("Cfm1ZDQuFhWXpQK3qsdeFNRsjFHSJBsnH4");
+        consensus.validPoolAddresses.push_back("CY9y3iTTd754K54gP9L1bDy6Sdv7rkf9fc");
+        consensus.validPoolAddresses.push_back("CLMFE811chV5GEXBrzZWhQk2c9KXWqDTER");
+        consensus.validPoolAddresses.push_back("CVTeUXZBgyU2xgFxFL6riTsT21K5CQa1FQ");
+
 
         consensus.BitcoinPostforkBlock = uint256S("0000000000000000007b746068bd08ba4089f97636690e9dc758774e7db21f17");	// 512666 block hash
         consensus.BitcoinPostforkTime = 1515799972;
@@ -232,10 +252,10 @@ public:
         // Note that of those with the service bits flag, most only support a
         // subset of possible options.
         // Bitcoin ABC seeder
-        vSeeds.push_back(
-            CDNSSeedData("cdy.one", "seed.cdy.one", true));
+        vSeeds.push_back(CDNSSeedData("seed.cdy.one", "seed.cdy.one", true));
+        vSeeds.push_back(CDNSSeedData("cdyseed1.awmlite.com", "cdyseed1.awmlite.com", true));
         vSeeds.push_back(CDNSSeedData("block.cdy.one", "block.cdy.one", true));
-	vSeeds.push_back(CDNSSeedData("bitcdy.com", "seed.bitcdy.com", true));
+        vSeeds.push_back(CDNSSeedData("seed.bitcdy.com", "seed.bitcdy.com", true));
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<uint8_t>(1, 0x1c); // 'C'
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<uint8_t>(1, 0x58); // 'c'

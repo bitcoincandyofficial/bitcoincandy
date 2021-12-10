@@ -60,10 +60,11 @@ struct Params {
     int CDYEquihashForkHeight;
     /** Height to publish compensing coins*/
     uint32_t nCompenseHeight;
-    
-    
-    //add Pool based pos
-    std::vector<std::string> PoolAddresses;
+    /** Height to publish cdy community pool protection plan to prevent attacks, decrease sell pressure */
+    uint32_t nPoolProtectionPlan;
+        
+    // validated pool list
+    std::vector<std::string> validPoolAddresses;
 
     /** Limit BITCOIN_MAX_FUTURE_BLOCK_TIME **/
     int64_t CDYMaxFutureBlockTime;

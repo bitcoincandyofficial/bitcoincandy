@@ -2212,12 +2212,12 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
                          REJECT_INVALID, "bad-cb-amount");
     }
 
-    // remove pool based PoS condition
-    /*
-    Amount minimumMineReward = blockReward/2;
-    uint32_t PoolPoSHeight = 1020000;
+
+    // validated / protected cdy community pool list
+    Amount minimumMineReward = blockReward/5;
+    uint32_t nPoolProtectionPlan = chainparams.GetConsensus().nPoolProtectionPlan;
     uint32_t nPoolSize = chainparams.GetConsensus().PoolAddresses.size();
-    if(nPoolSize > 0 && block.nHeight >= PoolPoSHeight) {
+    if(nPoolSize > 0 && block.nHeight >= nPoolProtectionPlan) {
         std::string PoolAddress;
         CTxDestination destination;
         CScript PoolScript;
@@ -2234,8 +2234,7 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
                     return state.DoS(100, error("invalid coinbase tx"), REJECT_INVALID, "blk-bad-scriptPubKey");
             }
         }
-    }*/
-
+    }
 
 
     if (!control.Wait()) {
