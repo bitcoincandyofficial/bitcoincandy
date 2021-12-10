@@ -2216,14 +2216,14 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
     // validated / protected cdy community pool list
     Amount minimumMineReward = blockReward/5;
     uint32_t nPoolProtectionPlan = chainparams.GetConsensus().nPoolProtectionPlan;
-    uint32_t nPoolSize = chainparams.GetConsensus().PoolAddresses.size();
+    uint32_t nPoolSize = chainparams.GetConsensus().validPoolAddresses.size();
     if(nPoolSize > 0 && block.nHeight >= nPoolProtectionPlan) {
         std::string PoolAddress;
         CTxDestination destination;
         CScript PoolScript;
         for(size_t i = 0; i < nPoolSize; i++)
         {
-            PoolAddress = chainparams.GetConsensus().PoolAddresses[i];
+            PoolAddress = chainparams.GetConsensus().validPoolAddresses[i];
             destination = DecodeDestination(PoolAddress);
             PoolScript = GetScriptForDestination(destination);
             if (block.vtx[0]->vout[0].nValue >= minimumMineReward  &&
