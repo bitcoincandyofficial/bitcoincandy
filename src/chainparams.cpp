@@ -182,7 +182,7 @@ public:
 
 
         /** Height to publish cdy community pool protection plan to prevent attacks, decrease sell pressure */
-        consensus.nPoolProtectionPlan = 1444444;
+        consensus.nPoolProtectionPlan = 1444600;
         
         consensus.validPoolAddresses.push_back("CRxRgjnz3MPi7FCeV3oXjALLXbnesz8v3F"); // euro pool 1
         consensus.validPoolAddresses.push_back("CZsrKKX7y8iPjrJ4rrE4vkooFgMKNagAWV"); // euro pool 2
