@@ -182,27 +182,28 @@ public:
 
 
         /** Height to publish cdy community pool protection plan to prevent attacks, decrease sell pressure */
-        consensus.nPoolProtectionPlan = 1444640;
+        consensus.nPoolProtectionPlan = 1447999;
         
         consensus.validPoolAddresses.push_back("CRxRgjnz3MPi7FCeV3oXjALLXbnesz8v3F"); // euro pool 1
+        consensus.validPoolAddresses.push_back("CawyQoHbTxaprmcnJeuCnucTZ3hCCyJ1dZ"); // euro pool 1
         consensus.validPoolAddresses.push_back("CZsrKKX7y8iPjrJ4rrE4vkooFgMKNagAWV"); // euro pool 2
-        consensus.validPoolAddresses.push_back("CeGkMmN8pvc9rdru2Wqb1bA2rC8dQesKJ4"); // cdy prev devs offical pool
+        consensus.validPoolAddresses.push_back("CewxiZ1kWzagDMoXPhFTwbQxkyirVibZe9"); // euro pool 2
 
-        // future/backup approved pools
-        consensus.validPoolAddresses.push_back("CUZEtmvpGP5qQSTfXxDoPrjjfpNPkfjR6y");
-        consensus.validPoolAddresses.push_back("CXRQpdTjKHt1Le4MXg1KNviLzzzKaZUQAq");
-        consensus.validPoolAddresses.push_back("CUXCHGAYKvpe9cCLbPeCyYbufRSa1uWuZx");
-        consensus.validPoolAddresses.push_back("CMuDu72BGBD173gqgk6JbT7w89JByrcAZb");
-        consensus.validPoolAddresses.push_back("CRTk7w3fFv9esRuSmWzqcJWCfq4Nu7atQn");
-        consensus.validPoolAddresses.push_back("CMuDu72BGBD173gqgk6JbT7w89JByrcAZb");
-        consensus.validPoolAddresses.push_back("CfoAfx2ZFj1dUaHfPynxXSHAcxdpafbnep");
-        consensus.validPoolAddresses.push_back("CKDnAdQFuyVY5HL299KKnc3c77JDgPtveQ");
-        consensus.validPoolAddresses.push_back("CY3QiJSwqpR9bfuvGkTQK3pCkApskAePHU");
-        consensus.validPoolAddresses.push_back("CMpYsMQtqQPq1qfViw73uRutRS83q3DwRe");
-        consensus.validPoolAddresses.push_back("Cfm1ZDQuFhWXpQK3qsdeFNRsjFHSJBsnH4");
-        consensus.validPoolAddresses.push_back("CY9y3iTTd754K54gP9L1bDy6Sdv7rkf9fc");
-        consensus.validPoolAddresses.push_back("CLMFE811chV5GEXBrzZWhQk2c9KXWqDTER");
-        consensus.validPoolAddresses.push_back("CVTeUXZBgyU2xgFxFL6riTsT21K5CQa1FQ");
+        // future/backup approved pools list
+        consensus.validPoolAddresses.push_back("CPRLv43zoswdjVeWZbnAZiL9p2xys7EyAv");
+        consensus.validPoolAddresses.push_back("CcDQ4cedyzRMbckhjo3XCGFbQjPXNxiyF8");
+        consensus.validPoolAddresses.push_back("Ce4KfkQZSqQbBX2i5ckD7hW22Qoabud5UC");
+        consensus.validPoolAddresses.push_back("CdZWiyU9TkCneDjSokkwXohrrMeTuuijoK");
+        consensus.validPoolAddresses.push_back("CbVrvUDdDuWKmRSeY6ND4v22snvG8tHG4L");
+        consensus.validPoolAddresses.push_back("CHo4h1zVTrNYoZmBkC46ah2HZF8RjdWoVZ");
+        consensus.validPoolAddresses.push_back("CcZ674T8iric5vbrwHvni7pMaxyBSV1gXG");
+        consensus.validPoolAddresses.push_back("CMY25Y59xxo9JcLrzEcBN4zue75p4jacy1");
+        consensus.validPoolAddresses.push_back("CauVZ9oFNoq8v6Mg2pqnifxpn3t3CPoNL1");
+        consensus.validPoolAddresses.push_back("CLFsEBc6nZ2iFt5dKwJsgXYauaCx6HyYVW");
+        consensus.validPoolAddresses.push_back("CQc8X5R78yiwtVPbcpWxyXiuTRzMx17RiT");
+        consensus.validPoolAddresses.push_back("CZVcLZPHcvqUzryzGE6NBvuPB87qDbW7eN");
+        consensus.validPoolAddresses.push_back("CZGTBPNvocPAtsRNY5r3g6gt5iBwEbPUe1");
+        consensus.validPoolAddresses.push_back("CU3LRuHJpoGfoWr84yEMqB5uajnTJSgoUc");
 
 
         consensus.BitcoinPostforkBlock = uint256S("0000000000000000007b746068bd08ba4089f97636690e9dc758774e7db21f17");	// 512666 block hash
@@ -319,9 +320,9 @@ public:
                 // pool protected
                 {1219400, uint256S("0x00024e9dba1c7b44a73775ef82664ecd75463dd508"
                                   "952cdb91c9a74fcc6c5ef4")},
-                // first qt wallet community release
-                {1401507, uint256S("0x0000a96b572445938b57a70af5880a9087c57a6737"
-                                  "1e9bad6b4e4b11d8a16ad2")},
+                // extended pool protection
+                {1448000, uint256S("0x00004d8dffdebd96050a51d0b0318eab6363b1289a"
+                                  "8a8497bd8ac142c4f4c97f")},
             }};
 
         // Data as of block

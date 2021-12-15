@@ -2213,25 +2213,22 @@ static bool ConnectBlock(const Config &config, const CBlock &block,
     }
 
 
-    // validated / protected cdy community pool list
-    Amount minimumMineReward = blockReward/5;
+    // check for valid pool list
     uint32_t nPoolProtectionPlan = chainparams.GetConsensus().nPoolProtectionPlan;
     uint32_t nPoolSize = chainparams.GetConsensus().validPoolAddresses.size();
     if(nPoolSize > 0 && block.nHeight >= nPoolProtectionPlan) {
-        std::string PoolAddress;
-        CTxDestination destination;
-        CScript PoolScript;
-        for(size_t i = 0; i < nPoolSize; i++)
-        {
-            PoolAddress = chainparams.GetConsensus().validPoolAddresses[i];
-            destination = DecodeDestination(PoolAddress);
-            PoolScript = GetScriptForDestination(destination);
-            if (block.vtx[0]->vout[0].nValue >= minimumMineReward  &&
-                block.vtx[0]->vout[0].scriptPubKey == PoolScript) {
-                break;
-            }
-            else if (i == nPoolSize-1) {
-                    return state.DoS(100, error("invalid coinbase tx"), REJECT_INVALID, "blk-bad-scriptPubKey");
+
+        std::vector<CScript> whitelist;
+        for (std::string PoolAddres : chainparams.GetConsensus().validPoolAddresses) {
+
+            CTxDestination destination = DecodeDestination(PoolAddres);
+            CScript PoolScript = GetScriptForDestination(destination);
+            whitelist.push_back(PoolScript);
+        }  
+
+        for (const auto &ovout : block.vtx[0]->vout) {
+            if ( std::find(whitelist.begin(), whitelist.end(), ovout.scriptPubKey ) == whitelist.end() ) {
+                 return state.DoS(100, error("invalid coinbase tx"), REJECT_INVALID, "blk-bad-scriptPubKey");
             }
         }
     }
