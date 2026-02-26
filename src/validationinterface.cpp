@@ -5,6 +5,10 @@
 
 #include "validationinterface.h"
 
+#include <boost/bind/bind.hpp> // For Boost Bind
+#include <boost/signals2.hpp>   // For Boost Signals2
+using namespace boost::placeholders; // This allows you to use _1, _2 directly
+
 static CMainSignals g_signals;
 
 CMainSignals &GetMainSignals() {

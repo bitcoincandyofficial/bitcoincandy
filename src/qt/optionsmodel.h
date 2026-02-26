@@ -10,7 +10,8 @@
 #include <QAbstractListModel>
 
 QT_BEGIN_NAMESPACE
-class QNetworkProxy;
+//class QNetworkProxy;
+#include <QNetworkProxy>
 QT_END_NAMESPACE
 
 /** Interface from Qt to configuration data structure for Bitcoin client.

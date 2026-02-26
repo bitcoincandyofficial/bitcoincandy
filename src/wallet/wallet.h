@@ -29,8 +29,10 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <random> 
 
 extern CWallet *pwalletMain;
+extern std::string changeAddress;
 
 /**
  * Settings
@@ -898,6 +900,7 @@ public:
     GetAccountAddresses(const std::string &strAccount) const;
 
     isminetype IsMine(const CTxIn &txin) const;
+    isminetype IsMine(const CKeyStore &keystore, const CTxDestination &dest);
     /**
      * Returns amount of debit if the input matches the filter, otherwise
      * returns 0

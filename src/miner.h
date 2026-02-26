@@ -71,7 +71,7 @@ struct modifiedentry_iter {
 // TODO: refactor to avoid duplication of this logic.
 struct CompareModifiedEntry {
     bool operator()(const CTxMemPoolModifiedEntry &a,
-                    const CTxMemPoolModifiedEntry &b) {
+                    const CTxMemPoolModifiedEntry &b) const {
         double f1 = double(b.nSizeWithAncestors *
                            a.nModFeesWithAncestors.GetSatoshis());
         double f2 = double(a.nSizeWithAncestors *

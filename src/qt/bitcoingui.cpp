@@ -56,6 +56,7 @@
 #include <QTimer>
 #include <QToolBar>
 #include <QVBoxLayout>
+#include <QWindow>
 
 #if QT_VERSION < 0x050000
 #include <QTextDocument>
@@ -63,6 +64,8 @@
 #else
 #include <QUrlQuery>
 #endif
+
+using namespace boost::placeholders;
 
 const std::string BitcoinGUI::DEFAULT_UIPLATFORM =
 #if defined(Q_OS_MAC)

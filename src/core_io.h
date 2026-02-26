@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include <cstdint>
+
 class CBlock;
 class CMutableTransaction;
 class CScript;

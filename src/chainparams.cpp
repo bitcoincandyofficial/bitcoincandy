@@ -254,10 +254,9 @@ public:
         // subset of possible options.
         // Bitcoin ABC seeder
         vSeeds.push_back(CDNSSeedData("seed.cdy.one", "seed.cdy.one", true));
-        vSeeds.push_back(CDNSSeedData("cdyseed1.awmlite.com", "cdyseed1.awmlite.com", true));
-        vSeeds.push_back(CDNSSeedData("cdyseed2.awmlite.com", "cdyseed2.awmlite.com", true));
         vSeeds.push_back(CDNSSeedData("block.cdy.one", "block.cdy.one", true));
         vSeeds.push_back(CDNSSeedData("seed.bitcdy.com", "seed.bitcdy.com", true));
+        vSeeds.push_back(CDNSSeedData("explorer.bitcdy.com", "explorer.bitcdy.com", true));
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<uint8_t>(1, 0x1c); // 'C'
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<uint8_t>(1, 0x58); // 'c'
@@ -323,6 +322,9 @@ public:
                 // extended pool protection
                 {1448000, uint256S("0x00004d8dffdebd96050a51d0b0318eab6363b1289a"
                                   "8a8497bd8ac142c4f4c97f")},
+                // checkpoint 2026
+                {2507955, uint256S("0x0000a9d74d06f9c5dbdb77b2081178bdc00deda109"
+                                  "11e276addf1f3cd08a473c")},                
             }};
 
         // Data as of block
@@ -465,7 +467,7 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
         // nodes with support for servicebits filtering should be at the top
-        vSeeds.push_back(CDNSSeedData("bitcoincandy.one", "testnet-seed.bitcoincandy.one", true));
+        //vSeeds.push_back(CDNSSeedData("bitcoincandy.one", "testnet-seed.bitcoincandy.one", true));
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<uint8_t>(1, 111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<uint8_t>(1, 196);
         base58Prefixes[SECRET_KEY] = std::vector<uint8_t>(1, 239);

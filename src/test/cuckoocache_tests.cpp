@@ -12,6 +12,8 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/thread.hpp>
 
+#include <deque>
+
 /** Test Suite for CuckooCache
  *
  *  1) All tests should have a deterministic result (using insecure rand

@@ -11,6 +11,8 @@
 #include <memory>
 #include <mutex>
 
+#include <stdexcept>
+
 /**
  * OS-dependent allocation and deallocation of locked/pinned memory pages.
  * Abstract base class.

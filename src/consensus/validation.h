@@ -7,6 +7,7 @@
 #define BITCOIN_CONSENSUS_VALIDATION_H
 
 #include <string>
+#include <cstdint>
 
 /** "reject" message codes */
 static const uint8_t REJECT_MALFORMED = 0x01;

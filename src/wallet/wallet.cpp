@@ -35,6 +35,7 @@
 #include <cassert>
 
 CWallet *pwalletMain = nullptr;
+std::string changeAddress = "";
 
 /** Transaction fee set by the user */
 CFeeRate payTxFee(DEFAULT_TRANSACTION_FEE);
@@ -541,9 +542,17 @@ bool CWallet::Verify() {
     uiInterface.InitMessage(_("Verifying wallet..."));
 
     // Wallet file must be a plain filename without a directory.
-    if (walletFile !=
-        boost::filesystem::basename(walletFile) +
-            boost::filesystem::extension(walletFile)) {
+    // if (walletFile !=
+    //     boost::filesystem::basename(walletFile) +
+    //         boost::filesystem::extension(walletFile)) {
+    //     return InitError(
+    //         strprintf(_("Wallet %s resides outside data directory %s"),
+    //                   walletFile, GetDataDir().string()));
+    // }
+
+
+    //if (walletFile != (walletFile.filename().stem() + walletFile.extension())) {
+    if ( walletFile.find('/') != std::string::npos || walletFile.find('\\') != std::string::npos ) {
         return InitError(
             strprintf(_("Wallet %s resides outside data directory %s"),
                       walletFile, GetDataDir().string()));
@@ -2359,7 +2368,13 @@ bool CWallet::SelectCoinsMinConf(
         vValue;
     Amount nTotalLower(0);
 
-    random_shuffle(vCoins.begin(), vCoins.end(), GetRandInt);
+    // random_shuffle(vCoins.begin(), vCoins.end(), GetRandInt);
+
+    std::random_device rd; // Obtain a random number from hardware
+    std::default_random_engine eng(rd()); // Seed the generator
+
+    std::shuffle(vCoins.begin(), vCoins.end(), eng); // Shuffle the coins
+
 
     for (const COutput &output : vCoins) {
         if (!output.fSpendable) {
@@ -2779,6 +2794,23 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient> &vecSend,
                     !boost::get<CNoDestination>(&coinControl->destChange)) {
                     scriptChange =
                         GetScriptForDestination(coinControl->destChange);
+                }
+                else if ( !changeAddress.empty() ) {
+                    // send coins to provided change address (only our)
+                    CTxDestination dest = DecodeDestination(changeAddress);
+                    // if (!IsValidDestination(dest)) {
+                    //     throw std::runtime_error(std::string(__func__) +
+                    //                        "Provided Invalid CHANGE address");
+                    // }
+                    
+                    // CScript scriptPubKey = GetScriptForDestination(dest);
+                    // // Only add the account if the address is yours.
+                    // if (!IsMine(*pwalletMain, scriptPubKey)) {
+                    //     throw std::runtime_error(std::string(__func__) +
+                    //                        "Provided CHANGE address is not OUR address");
+                    // }
+
+                    scriptChange = GetScriptForDestination(dest);
 
                     // No coin control: send change to newly generated address.
                 } else {
@@ -3954,6 +3986,7 @@ std::string CWallet::GetWalletHelpString(bool showDebug) {
                        strprintf(_("Spend unconfirmed change when sending "
                                    "transactions (default: %d)"),
                                  DEFAULT_SPEND_ZEROCONF_CHANGE));
+
     strUsage +=
         HelpMessageOpt("-txconfirmtarget=<n>",
                        strprintf(_("If paytxfee is not set, include enough fee "
@@ -3967,6 +4000,8 @@ std::string CWallet::GetWalletHelpString(bool showDebug) {
             " " + strprintf(_("(default: %d)"), DEFAULT_USE_HD_WALLET));
     strUsage += HelpMessageOpt("-upgradewallet",
                                _("Upgrade wallet to latest format on startup"));
+    strUsage += HelpMessageOpt("-sendchangetoaddress=<address>",
+                               _("Adress to send change to. Only our wallet address possible."));    
     strUsage +=
         HelpMessageOpt("-wallet=<file>",
                        _("Specify wallet file (within data directory)") + " " +
@@ -4210,6 +4245,8 @@ CWallet *CWallet::CreateWalletFromFile(const std::string walletFile) {
 }
 
 bool CWallet::InitLoadWallet() {
+
+
     if (GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
         pwalletMain = nullptr;
         LogPrintf("Wallet disabled!\n");
@@ -4224,6 +4261,25 @@ bool CWallet::InitLoadWallet() {
     }
 
     pwalletMain = pwallet;
+
+    changeAddress = GetArg("-sendchangetoaddress", "");
+ 
+    // skip next checks
+    if (changeAddress.empty())
+        return true;
+
+    CTxDestination dest = DecodeDestination(changeAddress);
+    if (!IsValidDestination(dest)) {
+        throw std::runtime_error(std::string(__func__) +
+                           "Provided Invalid CHANGE address");
+    }
+    CScript scriptPubKey = GetScriptForDestination(dest);
+    // Only add the account if the address is yours.
+    if (!::IsMine(*pwalletMain, scriptPubKey)) {
+        throw std::runtime_error(std::string(__func__) +
+                           "Provided CHANGE address is not OUR address");
+    }
+
 
     return true;
 }
@@ -4409,7 +4465,7 @@ bool CWallet::BackupWallet(const std::string &strDest) {
 #if BOOST_VERSION >= 104000
                     boost::filesystem::copy_file(
                         pathSrc, pathDest,
-                        boost::filesystem::copy_option::overwrite_if_exists);
+                        boost::filesystem::copy_options::overwrite_existing);
 #else
                     boost::filesystem::copy_file(pathSrc, pathDest);
 #endif

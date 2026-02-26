@@ -53,6 +53,12 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/thread.hpp>
 
+
+#include <boost/bind/bind.hpp> // For Boost Bind
+#include <boost/signals2.hpp>   // For Boost Signals2
+using namespace boost::placeholders; // This allows you to use _1, _2 directly
+
+
 #if defined(NDEBUG)
 #error "Bitcoin cannot be compiled without assertions."
 #endif

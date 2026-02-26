@@ -10,6 +10,7 @@
 #include <QAbstractTableModel>
 #include <QStringList>
 
+
 class PlatformStyle;
 class TransactionRecord;
 class TransactionTablePriv;

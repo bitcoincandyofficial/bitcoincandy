@@ -10,6 +10,8 @@
 #include <map>
 #include <string>
 
+#include <cstdint>
+
 #include <boost/preprocessor/cat.hpp>
 #include <boost/preprocessor/stringize.hpp>
 

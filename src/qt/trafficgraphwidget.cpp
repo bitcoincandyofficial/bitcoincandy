@@ -11,6 +11,11 @@
 
 #include <cmath>
 
+#include <QWidget>
+#include <QPainter>
+#include <QPainterPath>
+#include <QQueue>
+
 #define DESIRED_SAMPLES 800
 
 #define XMARGIN 10

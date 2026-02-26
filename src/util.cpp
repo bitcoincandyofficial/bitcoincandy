@@ -519,10 +519,20 @@ void ClearDatadirCache() {
     pathCachedNetSpecific = boost::filesystem::path();
 }
 
+// boost::filesystem::path GetConfigFile(const std::string &confPath) {
+//     boost::filesystem::path pathConfigFile(confPath);
+//     if (!pathConfigFile.is_complete())
+//         pathConfigFile = GetDataDir(false) / pathConfigFile;
+
+//     return pathConfigFile;
+// }
+
+
 boost::filesystem::path GetConfigFile(const std::string &confPath) {
     boost::filesystem::path pathConfigFile(confPath);
-    if (!pathConfigFile.is_complete())
+    if (!pathConfigFile.is_absolute()) {
         pathConfigFile = GetDataDir(false) / pathConfigFile;
+    }
 
     return pathConfigFile;
 }
@@ -556,12 +566,18 @@ void ReadConfigFile(const std::string &confPath) {
 }
 
 #ifndef WIN32
+// boost::filesystem::path GetPidFile() {
+//     boost::filesystem::path pathPidFile(GetArg("-pid", BITCOIN_PID_FILENAME));
+//     if (!pathPidFile.is_complete()) pathPidFile = GetDataDir() / pathPidFile;
+//     return pathPidFile;
+// }
 boost::filesystem::path GetPidFile() {
     boost::filesystem::path pathPidFile(GetArg("-pid", BITCOIN_PID_FILENAME));
-    if (!pathPidFile.is_complete()) pathPidFile = GetDataDir() / pathPidFile;
+    if (!pathPidFile.is_absolute()) {
+        pathPidFile = GetDataDir() / pathPidFile;
+    }
     return pathPidFile;
 }
-
 void CreatePidFile(const boost::filesystem::path &path, pid_t pid) {
     FILE *file = fopen(path.string().c_str(), "w");
     if (file) {
